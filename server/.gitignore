@@ -1,0 +1,44 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.pyc
+*.egg-info/
+*.egg
+
+# Django migrations
+**/migrations/
+db.sqlite3
+
+# Virtual environment
+venv/
+env/
+
+# VSCode or PyCharm
+.vscode/
+.idea/
+
+# Environment variables and secrets
+.env
+gcs-credentials.json
+
+# Logs and debug files
+*.log
+*.pot
+*.pyc
+.DS_Store
+
+# Static and media files (if generated)
+staticfiles/
+media/
+
+# Compiled and cache files
+*.bak
+*.swp
+*.tmp
+*.lock
+
+# pipenv or poetry lock files (if used)
+Pipfile.lock
+poetry.lock
