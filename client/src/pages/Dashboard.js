@@ -1,33 +1,35 @@
+// src/pages/Dashboard.js
+
 export function Dashboard() {
-  console.log("📥 Loading Dashboard UI...");
+  console.log("🟪 DEBUG: Rendering Dashboard");
 
   const section = document.createElement("section");
-  section.className = "flex flex-col md:flex-row min-h-screen";
+  section.className = "flex min-h-screen pt-[64px]"; // space below fixed navbar
 
   section.innerHTML = `
     <!-- Sidebar -->
-    <aside class="w-full md:w-64 bg-white shadow-md border-r px-4 py-6">
-      <h2 class="text-lg font-bold text-[#5624d0] mb-4">High School Resources</h2>
-      <nav class="flex flex-col gap-3">
-        <button class="btn-resource" data-type="notes">Notes</button>
-        <button class="btn-resource" data-type="ebooks">E-Books</button>
-        <button class="btn-resource" data-type="exams">Exams</button>
-        <button class="btn-resource" data-type="schemes">Schemes of Work</button>
-        <button class="btn-resource" data-type="lessons">Lesson Plans</button>
+    <aside class="fixed top-0 left-0 w-64 h-full bg-[#1f2937] text-white shadow-md z-40 hidden md:flex flex-col pt-[64px]">
+      <h2 class="text-lg font-bold text-center mb-6">High School Resources</h2>
+      <nav class="flex flex-col px-4 gap-3 text-sm font-medium">
+        <button class="btn-resource text-left hover:bg-[#374151] px-3 py-2 rounded" data-type="notes">📚 Notes</button>
+        <button class="btn-resource text-left hover:bg-[#374151] px-3 py-2 rounded" data-type="ebooks">📖 E-Books</button>
+        <button class="btn-resource text-left hover:bg-[#374151] px-3 py-2 rounded" data-type="exams">📝 Exams</button>
+        <button class="btn-resource text-left hover:bg-[#374151] px-3 py-2 rounded" data-type="schemes">📘 Schemes of Work</button>
+        <button class="btn-resource text-left hover:bg-[#374151] px-3 py-2 rounded" data-type="lessons">🗂️ Lesson Plans</button>
       </nav>
     </aside>
 
-    <!-- Main content -->
-    <main id="dashboard-content" class="flex-1 p-6 overflow-y-auto">
-      <h3 class="text-xl font-semibold mb-4 text-gray-700">📚 Select a resource category from the sidebar</h3>
+    <!-- Main Content Area -->
+    <main id="dashboard-content" class="flex-1 ml-0 md:ml-64 p-6 bg-gray-50 min-h-screen">
+      <h3 class="text-xl font-semibold mb-4">Select a category</h3>
     </main>
   `;
 
-  // ✅ Add event listeners to buttons
+  // ✅ Button handlers for loading content
   section.querySelectorAll(".btn-resource").forEach((btn) => {
     btn.addEventListener("click", () => {
       const type = btn.getAttribute("data-type");
-      console.log(`🧭 User clicked: ${type}`);
+      console.log(`📁 DEBUG: Resource type selected →`, type);
       loadResources(type);
     });
   });
@@ -35,6 +37,7 @@ export function Dashboard() {
   return section;
 }
 
+// ✅ Resource renderer by category
 function loadResources(type) {
   const content = document.getElementById("dashboard-content");
 
@@ -57,22 +60,22 @@ function loadResources(type) {
   const title = categories[type];
   const groups = layout[type];
 
-  console.log(`📦 Loading resources for: ${title}`);
+  console.log("📄 DEBUG: Rendering group layout →", groups);
 
   let html = `<h3 class="text-2xl font-bold text-[#5624d0] mb-6">${title}</h3>`;
 
   groups.forEach((group) => {
     html += `
-      <div class="mb-8">
-        <h4 class="text-lg font-semibold text-gray-700 mb-2">${group} ${title}</h4>
+      <div class="mb-6">
+        <h4 class="text-xl font-semibold text-gray-700 mb-2">${group} ${title}</h4>
         <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-          <div class="border p-4 rounded shadow bg-white">
-            <h5 class="font-medium text-gray-800">File Title.pdf</h5>
+          <div class="border p-4 rounded shadow-sm bg-white">
+            <h5 class="font-medium">File Title.pdf</h5>
             <p class="text-sm text-gray-500">1.2 MB • 12 pages</p>
-            <div class="mt-3 flex flex-wrap gap-2">
-              <button class="px-3 py-1 bg-green-600 text-white rounded text-sm hover:bg-green-700">View</button>
-              <button class="px-3 py-1 bg-blue-600 text-white rounded text-sm hover:bg-blue-700">Download</button>
-              <button class="px-3 py-1 bg-yellow-500 text-white rounded text-sm hover:bg-yellow-600">Unlock @ Ksh 30</button>
+            <div class="mt-2 flex gap-2 flex-wrap">
+              <button class="px-3 py-1 bg-green-500 text-white rounded text-sm">View</button>
+              <button class="px-3 py-1 bg-blue-600 text-white rounded text-sm">Download</button>
+              <button class="px-3 py-1 bg-yellow-400 text-black rounded text-sm">Unlock @ Ksh 30</button>
             </div>
           </div>
         </div>
