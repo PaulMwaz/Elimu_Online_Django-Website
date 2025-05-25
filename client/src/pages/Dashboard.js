@@ -1,13 +1,15 @@
 // src/pages/Dashboard.js
 
+import { fetchResources } from "../services/api.js"; // ✅ Corrected name
+import { openPreviewModal } from "../components/Modal.js"; // ✅ Make sure this file exists and exports correctly
+
 export function Dashboard() {
   console.log("🟪 DEBUG: Rendering Dashboard");
 
   const section = document.createElement("section");
-  section.className = "flex min-h-screen pt-[64px]"; // space below fixed navbar
+  section.className = "flex min-h-screen pt-[64px]";
 
   section.innerHTML = `
-    <!-- Sidebar -->
     <aside class="fixed top-0 left-0 w-64 h-full bg-[#1f2937] text-white shadow-md z-40 hidden md:flex flex-col pt-[64px]">
       <h2 class="text-lg font-bold text-center mb-6">High School Resources</h2>
       <nav class="flex flex-col px-4 gap-3 text-sm font-medium">
@@ -19,17 +21,15 @@ export function Dashboard() {
       </nav>
     </aside>
 
-    <!-- Main Content Area -->
     <main id="dashboard-content" class="flex-1 ml-0 md:ml-64 p-6 bg-gray-50 min-h-screen">
       <h3 class="text-xl font-semibold mb-4">Select a category</h3>
     </main>
   `;
 
-  // ✅ Button handlers for loading content
   section.querySelectorAll(".btn-resource").forEach((btn) => {
     btn.addEventListener("click", () => {
       const type = btn.getAttribute("data-type");
-      console.log(`📁 DEBUG: Resource type selected →`, type);
+      console.log(`📁 DEBUG: Resource type selected → ${type}`);
       loadResources(type);
     });
   });
@@ -37,11 +37,10 @@ export function Dashboard() {
   return section;
 }
 
-// ✅ Resource renderer by category
-function loadResources(type) {
+async function loadResources(type) {
   const content = document.getElementById("dashboard-content");
 
-  const categories = {
+  const titleMap = {
     notes: "Notes",
     ebooks: "E-Books",
     exams: "Exams",
@@ -49,39 +48,69 @@ function loadResources(type) {
     lessons: "Lesson Plans",
   };
 
-  const layout = {
-    notes: ["Grade 9", "Form 2", "Form 3", "Form 4"],
-    ebooks: ["Grade 9", "Form 2", "Form 3", "Form 4"],
-    exams: ["Term 1", "Term 2", "Term 3"],
-    schemes: ["Term 1", "Term 2", "Term 3"],
-    lessons: ["Term 1", "Term 2", "Term 3"],
-  };
+  const groupBy = type === "notes" || type === "ebooks" ? "level" : "term";
 
-  const title = categories[type];
-  const groups = layout[type];
+  try {
+    const response = await fetchResources(); // ✅ Correct function name
+    const resources = response.filter((res) => res.category === titleMap[type]);
 
-  console.log("📄 DEBUG: Rendering group layout →", groups);
+    console.log(`📦 DEBUG: Total fetched → ${resources.length}`);
+    console.table(resources);
 
-  let html = `<h3 class="text-2xl font-bold text-[#5624d0] mb-6">${title}</h3>`;
+    const groups = {};
+    resources.forEach((res) => {
+      const key = res[groupBy] || "Uncategorized";
+      if (!groups[key]) groups[key] = [];
+      groups[key].push(res);
+    });
 
-  groups.forEach((group) => {
-    html += `
-      <div class="mb-6">
-        <h4 class="text-xl font-semibold text-gray-700 mb-2">${group} ${title}</h4>
-        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-          <div class="border p-4 rounded shadow-sm bg-white">
-            <h5 class="font-medium">File Title.pdf</h5>
-            <p class="text-sm text-gray-500">1.2 MB • 12 pages</p>
-            <div class="mt-2 flex gap-2 flex-wrap">
-              <button class="px-3 py-1 bg-green-500 text-white rounded text-sm">View</button>
-              <button class="px-3 py-1 bg-blue-600 text-white rounded text-sm">Download</button>
-              <button class="px-3 py-1 bg-yellow-400 text-black rounded text-sm">Unlock @ Ksh 30</button>
-            </div>
+    let html = `<h3 class="text-2xl font-bold text-[#5624d0] mb-6">${titleMap[type]}</h3>`;
+
+    for (const [group, items] of Object.entries(groups)) {
+      console.log(`📂 DEBUG: Rendering group → ${group} (${items.length})`);
+      html += `
+        <div class="mb-6">
+          <h4 class="text-xl font-semibold text-gray-700 mb-2">${group} ${
+        titleMap[type]
+      }</h4>
+          <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+            ${items
+              .map(
+                (res) => `
+                  <div class="border p-4 rounded shadow-sm bg-white">
+                    <h5 class="font-medium">${res.title}</h5>
+                    <p class="text-sm text-gray-500">${
+                      res.size || "1.2 MB"
+                    } • ${res.pages || "12"} pages</p>
+                    <div class="mt-2 flex gap-2 flex-wrap">
+                      <button class="px-3 py-1 bg-green-500 text-white rounded text-sm btn-view" data-url="${
+                        res.file_url
+                      }" data-title="${res.title}">
+                        View
+                      </button>
+                    </div>
+                  </div>
+                `
+              )
+              .join("")}
           </div>
         </div>
-      </div>
-    `;
-  });
+      `;
+    }
 
-  content.innerHTML = html;
+    content.innerHTML = html;
+
+    // ✅ Attach preview modal logic
+    document.querySelectorAll(".btn-view").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const url = btn.getAttribute("data-url");
+        const title = btn.getAttribute("data-title");
+        console.log(`👁️ DEBUG: Preview clicked → ${title}`);
+        openPreviewModal(url, title); // This should open your PDF/image/video
+      });
+    });
+  } catch (err) {
+    console.error("❌ Failed to fetch or render resources:", err);
+    content.innerHTML = `<p class="text-red-500">Failed to load resources. Please try again later.</p>`;
+  }
 }

@@ -1,4 +1,5 @@
 import os
+import logging
 from pathlib import Path
 from datetime import timedelta
 from google.oauth2 import service_account
@@ -7,17 +8,30 @@ from dotenv import load_dotenv
 # ✅ Load environment variables
 load_dotenv()
 
-# ✅ Base directory
+# ✅ Setup base directory
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-# ✅ Security settings
+# ✅ Logging configuration (for debug logs)
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'handlers': {
+        'console': {'class': 'logging.StreamHandler'},
+    },
+    'root': {
+        'handlers': ['console'],
+        'level': 'DEBUG',
+    },
+}
+
+# ✅ Core security settings
 SECRET_KEY = os.getenv('SECRET_KEY', 'fallback-secret-key')
 DEBUG = os.getenv('DEBUG', 'True') == 'True'
-ALLOWED_HOSTS = ['*']
+ALLOWED_HOSTS = ['*']  # Update for production
 
-# ✅ Installed applications
+# ✅ Installed apps
 INSTALLED_APPS = [
-    'jazzmin',  # 🪄 Jazzmin before admin
+    'jazzmin',  # 🪄 Jazzmin before Django admin
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -25,20 +39,20 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
 
-    # 3rd Party
+    # 3rd party
     'rest_framework',
-    'rest_framework_simplejwt',  # ✅ JWT support
+    'rest_framework_simplejwt',
     'corsheaders',
     'storages',
 
-    # Custom Apps
+    # Your apps
     'resources',
     'users',
     'payments',
     'dashboard',
 ]
 
-# ✅ Middleware stack
+# ✅ Middleware
 MIDDLEWARE = [
     'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
@@ -49,10 +63,9 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
 ]
 
-# ✅ Root URL config
+# ✅ URLs and templates
 ROOT_URLCONF = 'elimu_backend.urls'
 
-# ✅ Template engine
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
@@ -69,10 +82,9 @@ TEMPLATES = [
     },
 ]
 
-# ✅ WSGI entrypoint
 WSGI_APPLICATION = 'elimu_backend.wsgi.application'
 
-# ✅ PostgreSQL Database
+# ✅ PostgreSQL database config
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
@@ -84,7 +96,7 @@ DATABASES = {
     }
 }
 
-# ✅ Password validation (add validators in production)
+# ✅ Password validation (you can extend in production)
 AUTH_PASSWORD_VALIDATORS = []
 
 # ✅ Localization
@@ -93,7 +105,7 @@ TIME_ZONE = 'Africa/Nairobi'
 USE_I18N = True
 USE_TZ = True
 
-# ✅ Static files (JS, CSS)
+# ✅ Static files
 STATIC_URL = '/static/'
 STATICFILES_DIRS = [os.path.join(BASE_DIR, 'static')]
 
@@ -105,7 +117,7 @@ GS_CREDENTIALS = service_account.Credentials.from_service_account_file(
 DEFAULT_FILE_STORAGE = 'storages.backends.gcloud.GoogleCloudStorage'
 MEDIA_URL = f"https://storage.googleapis.com/{GS_BUCKET_NAME}/"
 
-# ✅ Django REST Framework + JWT Auth
+# ✅ Django REST Framework + JWT
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
         'rest_framework_simplejwt.authentication.JWTAuthentication',
@@ -115,39 +127,33 @@ REST_FRAMEWORK = {
     ],
 }
 
-# ✅ JWT Settings
 SIMPLE_JWT = {
     'ACCESS_TOKEN_LIFETIME': timedelta(days=1),
     'REFRESH_TOKEN_LIFETIME': timedelta(days=7),
     'AUTH_HEADER_TYPES': ('Bearer',),
 }
 
-# ✅ CORS (allow all for dev, restrict in prod)
+# ✅ CORS setup (allow all during dev)
 CORS_ALLOW_ALL_ORIGINS = True
 
-# ✅ Jazzmin Admin Customization
+# ✅ Jazzmin admin customization
 JAZZMIN_SETTINGS = {
     "site_title": "Elimu-Online Admin",
     "site_header": "Elimu-Online Dashboard",
     "site_brand": "Elimu-Online",
     "welcome_sign": "Welcome to the Admin Portal",
     "copyright": "© 2025 Elimu",
-
     "show_sidebar": True,
     "navigation_expanded": True,
-    "hide_apps": [],
-    "hide_models": [],
-
     "icons": {
         "auth": "fas fa-users",
         "resources.Resource": "fas fa-book",
         "users.Profile": "fas fa-id-badge",
     },
-
     "order_with_respect_to": ["auth", "resources", "users"],
     "default_icon_parents": "fas fa-chevron-circle-right",
     "default_icon_children": "fas fa-circle",
 }
 
-# ✅ Auto Primary Key type
+# ✅ Auto primary key type
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'

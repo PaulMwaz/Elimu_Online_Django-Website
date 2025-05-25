@@ -1,41 +1,58 @@
+// client/src/components/FileCard.js
+
 export function FileCard({
   title,
-  description,
-  fileUrl,
+  fileSize,
+  pageCount,
+  previewImageUrl,
   isFree = true,
   price = 0,
   onClickView,
 }) {
+  console.log("📦 Rendering FileCard:", {
+    title,
+    fileSize,
+    pageCount,
+    isFree,
+    price,
+    previewImageUrl,
+  });
+
+  // 📦 Create the main tile/card
   const card = document.createElement("div");
   card.className =
-    "bg-white rounded-lg shadow-md p-4 border hover:shadow-lg transition duration-300";
+    "bg-white rounded-xl shadow-md border border-gray-200 hover:shadow-lg transition duration-300 w-full";
 
-  // ✅ Badge for Free or Paid file
+  // 🏷️ Pricing badge (top-left)
   const badge = isFree
-    ? `<span class="text-xs text-green-600 font-semibold bg-green-100 px-2 py-1 rounded-full">Free</span>`
-    : `<span class="text-xs text-red-600 font-semibold bg-red-100 px-2 py-1 rounded-full">Ksh ${price}</span>`;
+    ? `<span class="absolute top-2 left-2 text-xs font-bold text-white bg-green-600 px-2 py-1 rounded">Free</span>`
+    : `<span class="absolute top-2 left-2 text-xs font-bold text-white bg-yellow-600 px-2 py-1 rounded">Ksh ${price}</span>`;
 
-  // ✅ Only show "Download" link if fileUrl exists
-  const downloadLink = fileUrl
-    ? `<a href="${fileUrl}" target="_blank" class="text-blue-600 underline hover:text-blue-800">Download</a>`
-    : `<span class="text-gray-400 text-sm italic">🔒 Locked</span>`;
-
+  // 🎨 HTML structure of the card
   card.innerHTML = `
-    <div class="flex justify-between items-center mb-2">
-      <h3 class="text-lg font-semibold text-[#5624d0]">${title}</h3>
+    <div class="relative w-full h-60 overflow-hidden rounded-t-xl bg-gray-100">
+      <img src="${previewImageUrl}" alt="Preview of ${title}" class="w-full h-full object-cover" />
       ${badge}
     </div>
-    <p class="text-sm text-gray-600 mb-4">${description}</p>
-    <div class="flex gap-3 items-center">
-      <button class="bg-[#5624d0] text-white px-4 py-2 rounded hover:bg-purple-800 focus:outline-none">
+    <div class="p-4 flex flex-col space-y-2">
+      <h3 class="text-sm font-semibold text-[#5624d0] truncate">${title}</h3>
+      <p class="text-xs text-gray-500">${fileSize} • ${pageCount} pages</p>
+      <button class="bg-[#5624d0] text-white text-sm px-3 py-1.5 rounded-md hover:bg-purple-800 transition focus:outline-none self-end w-fit">
         View
       </button>
-      ${downloadLink}
     </div>
   `;
 
-  // ✅ Attach preview action for signed URL or modal
-  card.querySelector("button").addEventListener("click", onClickView);
+  // 🎯 Handle "View" click
+  const viewBtn = card.querySelector("button");
+  viewBtn.addEventListener("click", () => {
+    console.log("👁️ View clicked for:", title);
+    if (typeof onClickView === "function") {
+      onClickView();
+    } else {
+      console.warn("⚠️ No view handler provided.");
+    }
+  });
 
   return card;
 }
