@@ -1,13 +1,11 @@
-// src/pages/Dashboard.js
-
-import { fetchResources } from "../services/api.js"; // ✅ Corrected name
-import { openPreviewModal } from "../components/Modal.js"; // ✅ Make sure this file exists and exports correctly
+import { fetchResources } from "../services/api.js";
+import { openPreviewModal } from "../components/Modal.js";
 
 export function Dashboard() {
   console.log("🟪 DEBUG: Rendering Dashboard");
 
   const section = document.createElement("section");
-  section.className = "flex min-h-screen pt-[64px]";
+  section.className = "flex min-h-screen";
 
   section.innerHTML = `
     <aside class="fixed top-0 left-0 w-64 h-full bg-[#1f2937] text-white shadow-md z-40 hidden md:flex flex-col pt-[64px]">
@@ -21,11 +19,12 @@ export function Dashboard() {
       </nav>
     </aside>
 
-    <main id="dashboard-content" class="flex-1 ml-0 md:ml-64 p-6 bg-gray-50 min-h-screen">
-      <h3 class="text-xl font-semibold mb-4">Select a category</h3>
+    <main id="dashboard-content" class="flex-1 ml-0 md:ml-64 pt-2 px-2 md:px-4 bg-gray-50 min-h-screen">
+      <h3 class="text-xl font-semibold mt-0 mb-4">Select a category</h3>
     </main>
   `;
 
+  // ✅ Bind button events to load resources
   section.querySelectorAll(".btn-resource").forEach((btn) => {
     btn.addEventListener("click", () => {
       const type = btn.getAttribute("data-type");
@@ -51,7 +50,8 @@ async function loadResources(type) {
   const groupBy = type === "notes" || type === "ebooks" ? "level" : "term";
 
   try {
-    const response = await fetchResources(); // ✅ Correct function name
+    console.log("📦 DEBUG: Fetching resources from API...");
+    const response = await fetchResources();
     const resources = response.filter((res) => res.category === titleMap[type]);
 
     console.log(`📦 DEBUG: Total fetched → ${resources.length}`);
@@ -64,7 +64,9 @@ async function loadResources(type) {
       groups[key].push(res);
     });
 
-    let html = `<h3 class="text-2xl font-bold text-[#5624d0] mb-6">${titleMap[type]}</h3>`;
+    let html = `
+      <h2 class="text-2xl font-bold text-[#5624d0] mb-4">${titleMap[type]}</h2>
+    `;
 
     for (const [group, items] of Object.entries(groups)) {
       console.log(`📂 DEBUG: Rendering group → ${group} (${items.length})`);
@@ -82,10 +84,10 @@ async function loadResources(type) {
                     <p class="text-sm text-gray-500">${
                       res.size || "1.2 MB"
                     } • ${res.pages || "12"} pages</p>
-                    <div class="mt-2 flex gap-2 flex-wrap">
-                      <button class="px-3 py-1 bg-green-500 text-white rounded text-sm btn-view" data-url="${
-                        res.file_url
-                      }" data-title="${res.title}">
+                    <div class="mt-2 flex gap-2">
+                      <button 
+                        class="px-3 py-1 bg-green-500 text-white rounded text-sm btn-view"
+                        data-url="${res.file_url}" data-title="${res.title}">
                         View
                       </button>
                     </div>
@@ -100,13 +102,12 @@ async function loadResources(type) {
 
     content.innerHTML = html;
 
-    // ✅ Attach preview modal logic
     document.querySelectorAll(".btn-view").forEach((btn) => {
       btn.addEventListener("click", () => {
         const url = btn.getAttribute("data-url");
         const title = btn.getAttribute("data-title");
         console.log(`👁️ DEBUG: Preview clicked → ${title}`);
-        openPreviewModal(url, title); // This should open your PDF/image/video
+        openPreviewModal(url, title);
       });
     });
   } catch (err) {
