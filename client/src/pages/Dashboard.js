@@ -1,3 +1,5 @@
+// src/pages/Dashboard.js
+
 import { fetchResources } from "../services/api.js";
 import { openPreviewModal } from "../components/Modal.js";
 
@@ -24,7 +26,6 @@ export function Dashboard() {
     </main>
   `;
 
-  // ✅ Bind button events to load resources
   section.querySelectorAll(".btn-resource").forEach((btn) => {
     btn.addEventListener("click", () => {
       const type = btn.getAttribute("data-type");
@@ -64,9 +65,7 @@ async function loadResources(type) {
       groups[key].push(res);
     });
 
-    let html = `
-      <h2 class="text-2xl font-bold text-[#5624d0] mb-4">${titleMap[type]}</h2>
-    `;
+    let html = `<h2 class="text-2xl font-bold text-[#5624d0] mb-4">${titleMap[type]}</h2>`;
 
     for (const [group, items] of Object.entries(groups)) {
       console.log(`📂 DEBUG: Rendering group → ${group} (${items.length})`);
@@ -77,23 +76,19 @@ async function loadResources(type) {
       }</h4>
           <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
             ${items
-              .map(
-                (res) => `
+              .map((res) => {
+                const isFree = res.is_free;
+                const label = isFree
+                  ? `<button class="px-3 py-1 bg-green-500 text-white rounded text-sm btn-view" data-url="${res.file_url}" data-title="${res.title}">View</button>`
+                  : `<button class="px-3 py-1 bg-yellow-500 text-white rounded text-sm btn-pay" data-id="${res.id}" data-title="${res.title}">Pay Ksh ${res.price}</button>`;
+
+                return `
                   <div class="border p-4 rounded shadow-sm bg-white">
                     <h5 class="font-medium">${res.title}</h5>
-                    <p class="text-sm text-gray-500">${
-                      res.size || "1.2 MB"
-                    } • ${res.pages || "12"} pages</p>
-                    <div class="mt-2 flex gap-2">
-                      <button 
-                        class="px-3 py-1 bg-green-500 text-white rounded text-sm btn-view"
-                        data-url="${res.file_url}" data-title="${res.title}">
-                        View
-                      </button>
-                    </div>
+                    <div class="mt-2 flex gap-2">${label}</div>
                   </div>
-                `
-              )
+                `;
+              })
               .join("")}
           </div>
         </div>
@@ -102,12 +97,25 @@ async function loadResources(type) {
 
     content.innerHTML = html;
 
+    // ✅ Attach preview for free items
     document.querySelectorAll(".btn-view").forEach((btn) => {
       btn.addEventListener("click", () => {
         const url = btn.getAttribute("data-url");
         const title = btn.getAttribute("data-title");
-        console.log(`👁️ DEBUG: Preview clicked → ${title}`);
+        console.log(`👁️ DEBUG: Viewing free resource → ${title}`);
         openPreviewModal(url, title);
+      });
+    });
+
+    // ✅ Handle payment buttons (can be customized further)
+    document.querySelectorAll(".btn-pay").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const id = btn.getAttribute("data-id");
+        const title = btn.getAttribute("data-title");
+        console.log(
+          `💰 DEBUG: Payment prompt triggered for → ${title} (ID: ${id})`
+        );
+        alert(`To unlock "${title}", proceed to pay via M-Pesa...`);
       });
     });
   } catch (err) {
