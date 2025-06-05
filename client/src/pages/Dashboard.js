@@ -1,7 +1,5 @@
-// src/pages/Dashboard.js
-
 import { fetchResources } from "../services/api.js";
-import { openPreviewModal } from "../components/Modal.js";
+import { openPreviewModal, openPaymentModal } from "../components/Modal.js";
 
 export function Dashboard() {
   console.log("🟪 DEBUG: Rendering Dashboard");
@@ -13,11 +11,11 @@ export function Dashboard() {
     <aside class="fixed top-0 left-0 w-64 h-full bg-[#1f2937] text-white shadow-md z-40 hidden md:flex flex-col pt-[64px]">
       <h2 class="text-lg font-bold text-center mb-6">High School Resources</h2>
       <nav class="flex flex-col px-4 gap-3 text-sm font-medium">
-        <button class="btn-resource text-left hover:bg-[#374151] px-3 py-2 rounded" data-type="notes">📚 Notes</button>
-        <button class="btn-resource text-left hover:bg-[#374151] px-3 py-2 rounded" data-type="ebooks">📖 E-Books</button>
-        <button class="btn-resource text-left hover:bg-[#374151] px-3 py-2 rounded" data-type="exams">📝 Exams</button>
-        <button class="btn-resource text-left hover:bg-[#374151] px-3 py-2 rounded" data-type="schemes">📘 Schemes of Work</button>
-        <button class="btn-resource text-left hover:bg-[#374151] px-3 py-2 rounded" data-type="lessons">🗂️ Lesson Plans</button>
+        <button class="btn-resource hover:bg-[#374151] px-3 py-2 rounded text-left" data-type="notes">📚 Notes</button>
+        <button class="btn-resource hover:bg-[#374151] px-3 py-2 rounded text-left" data-type="ebooks">📖 E-Books</button>
+        <button class="btn-resource hover:bg-[#374151] px-3 py-2 rounded text-left" data-type="exams">📝 Exams</button>
+        <button class="btn-resource hover:bg-[#374151] px-3 py-2 rounded text-left" data-type="schemes">📘 Schemes of Work</button>
+        <button class="btn-resource hover:bg-[#374151] px-3 py-2 rounded text-left" data-type="lessons">🗂️ Lesson Plans</button>
       </nav>
     </aside>
 
@@ -26,6 +24,7 @@ export function Dashboard() {
     </main>
   `;
 
+  // Navigation click events
   section.querySelectorAll(".btn-resource").forEach((btn) => {
     btn.addEventListener("click", () => {
       const type = btn.getAttribute("data-type");
@@ -78,9 +77,10 @@ async function loadResources(type) {
             ${items
               .map((res) => {
                 const isFree = res.is_free;
+                const priceText = res.price ? `Ksh ${res.price}` : "Premium";
                 const label = isFree
                   ? `<button class="px-3 py-1 bg-green-500 text-white rounded text-sm btn-view" data-url="${res.file_url}" data-title="${res.title}">View</button>`
-                  : `<button class="px-3 py-1 bg-yellow-500 text-white rounded text-sm btn-pay" data-id="${res.id}" data-title="${res.title}">Pay Ksh ${res.price}</button>`;
+                  : `<button class="px-3 py-1 bg-yellow-500 text-white rounded text-sm btn-pay" data-id="${res.id}" data-title="${res.title}" data-price="${res.price}">Pay ${priceText}</button>`;
 
                 return `
                   <div class="border p-4 rounded shadow-sm bg-white">
@@ -97,25 +97,26 @@ async function loadResources(type) {
 
     content.innerHTML = html;
 
-    // ✅ Attach preview for free items
+    // Handle free resource previews
     document.querySelectorAll(".btn-view").forEach((btn) => {
       btn.addEventListener("click", () => {
         const url = btn.getAttribute("data-url");
         const title = btn.getAttribute("data-title");
-        console.log(`👁️ DEBUG: Viewing free resource → ${title}`);
+        console.log(`👁️ DEBUG: Preview clicked → ${title}`);
         openPreviewModal(url, title);
       });
     });
 
-    // ✅ Handle payment buttons (can be customized further)
+    // Handle premium unlock buttons
     document.querySelectorAll(".btn-pay").forEach((btn) => {
       btn.addEventListener("click", () => {
         const id = btn.getAttribute("data-id");
         const title = btn.getAttribute("data-title");
+        const price = btn.getAttribute("data-price");
         console.log(
-          `💰 DEBUG: Payment prompt triggered for → ${title} (ID: ${id})`
+          `💳 DEBUG: Unlocking premium → ${title} | ID: ${id} | Price: ${price}`
         );
-        alert(`To unlock "${title}", proceed to pay via M-Pesa...`);
+        openPaymentModal(title, id); // requires `openPaymentModal()` to be implemented
       });
     });
   } catch (err) {
