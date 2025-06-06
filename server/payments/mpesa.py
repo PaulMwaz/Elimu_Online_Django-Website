@@ -1,26 +1,29 @@
-# mpesa.py
-
-import requests
+import os
 import base64
 import logging
 from datetime import datetime
+import requests
+from django.conf import settings
 
 logger = logging.getLogger(__name__)
 
-# ✅ Use ngrok public URL while testing with sandbox
-CALLBACK_URL = "https://773c-41-139-193-51.ngrok-free.app/api/payment/confirmation/"
+# ✅ Load from settings (from .env via settings.py)
+BASE_URL = "https://sandbox.safaricom.co.ke" if settings.MPESA_ENV == "sandbox" else "https://api.safaricom.co.ke"
 
-# ✅ Base URL for sandbox; swap to production if needed later
-BASE_URL = "https://sandbox.safaricom.co.ke"
+CONSUMER_KEY = settings.MPESA_CONSUMER_KEY
+CONSUMER_SECRET = settings.MPESA_CONSUMER_SECRET
+SHORTCODE = settings.MPESA_SHORTCODE
+PASSKEY = settings.MPESA_PASSKEY
+CALLBACK_URL = settings.MPESA_CALLBACK_URL
 
 
-def generate_token(consumer_key, consumer_secret):
+def generate_token():
     """🔐 Get OAuth access token from Safaricom"""
     token_url = f"{BASE_URL}/oauth/v1/generate?grant_type=client_credentials"
     logger.debug("🔐 Requesting M-Pesa token from: %s", token_url)
 
     try:
-        response = requests.get(token_url, auth=(consumer_key, consumer_secret))
+        response = requests.get(token_url, auth=(CONSUMER_KEY, CONSUMER_SECRET))
         response.raise_for_status()
         token = response.json().get("access_token")
         logger.debug("✅ M-Pesa token received: %s", token)
@@ -31,21 +34,26 @@ def generate_token(consumer_key, consumer_secret):
         return None
 
 
-def lipa_na_mpesa(phone, amount, token, shortcode, passkey, title="Elimu Resource"):
+def lipa_na_mpesa(phone, amount, token=None, title="Elimu Resource"):
     """📲 Initiates M-Pesa STK Push"""
     logger.info("📲 Initiating STK push → Phone: %s | Amount: %s", phone, amount)
 
+    token = token or generate_token()
+    if not token:
+        logger.error("❌ Aborting: No valid token generated.")
+        return {"error": "TokenError", "details": "Could not generate access token"}
+
     timestamp = datetime.now().strftime('%Y%m%d%H%M%S')
-    password = base64.b64encode(f"{shortcode}{passkey}{timestamp}".encode()).decode()
+    password = base64.b64encode(f"{SHORTCODE}{PASSKEY}{timestamp}".encode()).decode()
 
     payload = {
-        "BusinessShortCode": shortcode,
+        "BusinessShortCode": SHORTCODE,
         "Password": password,
         "Timestamp": timestamp,
         "TransactionType": "CustomerPayBillOnline",
         "Amount": amount,
         "PartyA": phone,
-        "PartyB": shortcode,
+        "PartyB": SHORTCODE,
         "PhoneNumber": phone,
         "CallBackURL": CALLBACK_URL,
         "AccountReference": "ElimuOnline",

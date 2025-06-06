@@ -5,13 +5,13 @@ from datetime import timedelta
 from google.oauth2 import service_account
 from dotenv import load_dotenv
 
-# ✅ Load environment variables
+# ✅ Load .env variables
 load_dotenv()
 
-# ✅ Setup base directory
+# ✅ Base directory
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-# ✅ Logging configuration (for debug logs)
+# ✅ Logging Configuration
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
@@ -23,15 +23,17 @@ LOGGING = {
         'level': 'DEBUG',
     },
 }
+logger = logging.getLogger(__name__)
+logger.info("✅ DEBUG: settings.py loaded")
 
-# ✅ Core security settings
+# ✅ Security
 SECRET_KEY = os.getenv('SECRET_KEY', 'fallback-secret-key')
 DEBUG = os.getenv('DEBUG', 'True') == 'True'
-ALLOWED_HOSTS = ['*']  # Update for production
+ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', 'localhost,127.0.0.1').split(',')
 
-# ✅ Installed apps
+# ✅ Installed Applications
 INSTALLED_APPS = [
-    'jazzmin',  # 🪄 Jazzmin before Django admin
+    'jazzmin',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -45,7 +47,7 @@ INSTALLED_APPS = [
     'corsheaders',
     'storages',
 
-    # Your apps
+    # Custom apps
     'resources',
     'users',
     'payments',
@@ -63,9 +65,11 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
 ]
 
-# ✅ URLs and templates
+# ✅ URL & WSGI Configuration
 ROOT_URLCONF = 'elimu_backend.urls'
+WSGI_APPLICATION = 'elimu_backend.wsgi.application'
 
+# ✅ Templates
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
@@ -82,35 +86,35 @@ TEMPLATES = [
     },
 ]
 
-WSGI_APPLICATION = 'elimu_backend.wsgi.application'
-
-# ✅ PostgreSQL database config
+# ✅ Database (PostgreSQL)
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': os.getenv('DB_NAME', 'elimu_db'),
-        'USER': os.getenv('DB_USER', 'elimu_online_db_user'),
-        'PASSWORD': os.getenv('DB_PASSWORD', '1234567'),
+        'NAME': os.getenv('DB_NAME'),
+        'USER': os.getenv('DB_USER'),
+        'PASSWORD': os.getenv('DB_PASSWORD'),
         'HOST': os.getenv('DB_HOST', 'localhost'),
         'PORT': os.getenv('DB_PORT', '5432'),
     }
 }
 
-# ✅ Password validation (you can extend in production)
+# ✅ Authentication
 AUTH_PASSWORD_VALIDATORS = []
 
 # ✅ Localization
 LANGUAGE_CODE = 'en-us'
 TIME_ZONE = 'Africa/Nairobi'
 USE_I18N = True
+USE_L10N = True
 USE_TZ = True
 
-# ✅ Static files
+# ✅ Static & Media Files
 STATIC_URL = '/static/'
 STATICFILES_DIRS = [os.path.join(BASE_DIR, 'static')]
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 
 # ✅ Google Cloud Storage
-GS_BUCKET_NAME = os.getenv("GS_BUCKET_NAME", "elimu-online-resources-254")
+GS_BUCKET_NAME = os.getenv("GS_BUCKET_NAME")
 GS_CREDENTIALS = service_account.Credentials.from_service_account_file(
     os.path.join(BASE_DIR, "gcs-credentials.json")
 )
@@ -133,10 +137,10 @@ SIMPLE_JWT = {
     'AUTH_HEADER_TYPES': ('Bearer',),
 }
 
-# ✅ CORS setup (allow all during dev)
+# ✅ CORS
 CORS_ALLOW_ALL_ORIGINS = True
 
-# ✅ Jazzmin admin customization
+# ✅ Jazzmin Admin Panel Configuration
 JAZZMIN_SETTINGS = {
     "site_title": "Elimu-Online Admin",
     "site_header": "Elimu-Online Dashboard",
@@ -155,5 +159,16 @@ JAZZMIN_SETTINGS = {
     "default_icon_children": "fas fa-circle",
 }
 
-# ✅ Auto primary key type
+# ✅ M-Pesa Configuration (Daraja)
+MPESA_ENV = os.getenv("MPESA_ENV", "sandbox")
+MPESA_SHORTCODE = os.getenv("MPESA_SHORTCODE")
+MPESA_CONSUMER_KEY = os.getenv("MPESA_CONSUMER_KEY")
+MPESA_CONSUMER_SECRET = os.getenv("MPESA_CONSUMER_SECRET")
+MPESA_PASSKEY = os.getenv("MPESA_PASSKEY")
+MPESA_CALLBACK_URL = os.getenv("MPESA_CALLBACK_URL")
+
+# ✅ Auto Field for Models
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+# ✅ Final load debug
+logger.debug("✅ DEBUG: Elimu-Online settings loaded successfully.")
