@@ -1,10 +1,8 @@
-# users/serializers.py
-
 import logging
 from django.contrib.auth.models import User
 from rest_framework import serializers
 
-# ✅ Setup logger for debug messages
+# ✅ Setup logger
 logger = logging.getLogger(__name__)
 
 class UserSerializer(serializers.ModelSerializer):
@@ -22,14 +20,17 @@ class UserSerializer(serializers.ModelSerializer):
 
     def to_representation(self, instance):
         data = super().to_representation(instance)
-        logger.debug("📤 Serializing user: %s | ID: %s | Email: %s",
-                     instance.username, instance.id, instance.email)
+        logger.debug(
+            "📤 Serializing user → Username: %s | ID: %s | Email: %s",
+            instance.username, instance.id, instance.email
+        )
         return data
 
     def create(self, validated_data):
-        logger.info("👤 Creating new user: %s", validated_data.get("username"))
+        username = validated_data.get("username")
+        logger.info("👤 Creating new user → Username: %s", username)
         return super().create(validated_data)
 
     def update(self, instance, validated_data):
-        logger.info("✏️ Updating user: %s", instance.username)
+        logger.info("✏️ Updating user → Username: %s", instance.username)
         return super().update(instance, validated_data)

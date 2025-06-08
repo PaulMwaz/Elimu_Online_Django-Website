@@ -7,7 +7,7 @@ from django.conf import settings
 
 logger = logging.getLogger(__name__)
 
-# ✅ Load from settings (from .env via settings.py)
+# ✅ Load M-Pesa credentials from environment/config
 BASE_URL = "https://sandbox.safaricom.co.ke" if settings.MPESA_ENV == "sandbox" else "https://api.safaricom.co.ke"
 
 CONSUMER_KEY = settings.MPESA_CONSUMER_KEY
@@ -18,30 +18,31 @@ CALLBACK_URL = settings.MPESA_CALLBACK_URL
 
 
 def generate_token():
-    """🔐 Get OAuth access token from Safaricom"""
+    """🔐 Request OAuth access token from Safaricom"""
     token_url = f"{BASE_URL}/oauth/v1/generate?grant_type=client_credentials"
-    logger.debug("🔐 Requesting M-Pesa token from: %s", token_url)
+    logger.debug("🔐 Generating M-Pesa token from %s", token_url)
 
     try:
-        response = requests.get(token_url, auth=(CONSUMER_KEY, CONSUMER_SECRET))
+        response = requests.get(token_url, auth=(CONSUMER_KEY, CONSUMER_SECRET), timeout=10)
         response.raise_for_status()
         token = response.json().get("access_token")
-        logger.debug("✅ M-Pesa token received: %s", token)
+        if token:
+            logger.info("✅ M-Pesa token generated successfully")
+        else:
+            logger.warning("⚠️ Token not found in response JSON: %s", response.json())
         return token
-
     except requests.RequestException as e:
-        logger.error("❌ Failed to obtain M-Pesa token: %s", str(e))
+        logger.error("❌ Failed to get M-Pesa token: %s", str(e))
         return None
 
 
 def lipa_na_mpesa(phone, amount, token=None, title="Elimu Resource"):
-    """📲 Initiates M-Pesa STK Push"""
-    logger.info("📲 Initiating STK push → Phone: %s | Amount: %s", phone, amount)
+    """📲 Initiate M-Pesa STK Push"""
+    logger.info("📲 STK Push: Phone=%s | Amount=Ksh %s", phone, amount)
 
     token = token or generate_token()
     if not token:
-        logger.error("❌ Aborting: No valid token generated.")
-        return {"error": "TokenError", "details": "Could not generate access token"}
+        return {"error": "TokenError", "details": "Failed to generate M-Pesa token"}
 
     timestamp = datetime.now().strftime('%Y%m%d%H%M%S')
     password = base64.b64encode(f"{SHORTCODE}{PASSKEY}{timestamp}".encode()).decode()
@@ -65,8 +66,7 @@ def lipa_na_mpesa(phone, amount, token=None, title="Elimu Resource"):
         "Content-Type": "application/json"
     }
 
-    logger.debug("📦 Payload: %s", payload)
-    logger.debug("🔗 Sending STK push to: %s/mpesa/stkpush/v1/processrequest", BASE_URL)
+    logger.debug("📦 M-Pesa STK Payload: %s", payload)
 
     try:
         response = requests.post(
@@ -77,17 +77,17 @@ def lipa_na_mpesa(phone, amount, token=None, title="Elimu Resource"):
         )
         response.raise_for_status()
         result = response.json()
-        logger.info("✅ STK Push response: %s", result)
+        logger.info("✅ STK Push Success: %s", result)
         return result
 
     except requests.HTTPError as http_err:
-        logger.error("❌ HTTP error during STK push: %s", str(http_err))
+        logger.error("❌ HTTPError: %s", str(http_err))
         return {"error": "HTTPError", "details": str(http_err)}
 
     except requests.RequestException as req_err:
-        logger.error("❌ Request error: %s", str(req_err))
+        logger.error("❌ RequestException: %s", str(req_err))
         return {"error": "RequestError", "details": str(req_err)}
 
     except Exception as e:
-        logger.exception("❌ Unexpected error during STK push: %s", str(e))
+        logger.exception("❌ UnexpectedError during STK push")
         return {"error": "UnexpectedError", "details": str(e)}

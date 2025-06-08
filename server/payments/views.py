@@ -1,13 +1,12 @@
-# payments/views.py
+import logging
+from django.utils.timezone import now
+from django.http import JsonResponse
+from django.conf import settings
+from django.views.decorators.csrf import csrf_exempt
 
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
-from django.views.decorators.csrf import csrf_exempt
-from django.utils.timezone import now
-from django.http import JsonResponse
-from django.conf import settings
-import logging
 
 from .models import PaidResource, Transaction, Wallet
 from resources.models import Resource
@@ -16,6 +15,7 @@ from .mpesa import generate_token, lipa_na_mpesa
 logger = logging.getLogger(__name__)
 
 
+# ✅ Get Wallet Balance
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def get_wallet(request):
@@ -28,6 +28,7 @@ def get_wallet(request):
         return Response({'error': 'Wallet fetch failed', 'details': str(e)}, status=500)
 
 
+# ✅ Top Up Wallet (Manual - For testing/demo)
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def top_up_wallet(request):
@@ -43,6 +44,7 @@ def top_up_wallet(request):
         return Response({'error': 'Wallet top-up failed', 'details': str(e)}, status=500)
 
 
+# ✅ Initiate M-Pesa Payment
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def initiate_payment(request):
@@ -51,7 +53,7 @@ def initiate_payment(request):
         phone = request.data.get("phone")
         resource = Resource.objects.get(pk=resource_id)
 
-        logger.info("📲 INITIATE_PAYMENT: Resource '%s' → User: %s", resource.title, request.user.username)
+        logger.info("📲 Initiating STK Push → Resource: %s | User: %s", resource.title, request.user.username)
 
         if resource.is_free:
             return Response({'error': 'This resource is free and does not require payment.'}, status=400)
@@ -60,17 +62,15 @@ def initiate_payment(request):
             logger.info("✅ Already paid: %s", resource.title)
             return Response({'message': 'Resource already unlocked'})
 
-        token = generate_token(settings.MPESA_CONSUMER_KEY, settings.MPESA_CONSUMER_SECRET)
+        token = generate_token()
         if not token:
-            logger.error("❌ Could not generate token")
+            logger.error("❌ Could not generate M-Pesa token")
             return Response({'error': 'Failed to generate M-Pesa token'}, status=500)
 
         result = lipa_na_mpesa(
             phone=phone,
             amount=resource.price,
             token=token,
-            shortcode=settings.MPESA_SHORTCODE,
-            passkey=settings.MPESA_PASSKEY,
             title=resource.title
         )
 
@@ -86,14 +86,15 @@ def initiate_payment(request):
         return Response({'error': 'Payment initiation failed', 'details': str(e)}, status=500)
 
 
+# ✅ M-Pesa Callback Handler
 @csrf_exempt
 @api_view(['POST'])
 def payment_confirmation(request):
-    logger.info("📥 PAYMENT_CALLBACK_RECEIVED")
+    logger.info("📥 PAYMENT CALLBACK RECEIVED")
     data = request.data
 
     try:
-        logger.debug("📦 Callback Data: %s", data)
+        logger.debug("📦 Callback Raw Data: %s", data)
 
         body = data.get("Body", {})
         stk_callback = body.get("stkCallback", {})
@@ -112,24 +113,25 @@ def payment_confirmation(request):
 
             logger.info("✅ Payment Success → Phone: %s | Amount: %s", phone, amount)
 
+            # Optional: Associate phone with user if registered
             Transaction.objects.create(
-                user=None,  # Optional: implement logic to assign user via phone
-                phone_number=phone,
+                user=None,  # To link a user, implement phone-to-user logic
                 amount=amount,
                 method="M-Pesa",
                 status="Success"
             )
 
         else:
-            logger.warning("⚠️ Payment not successful → ResultCode: %s", result_code)
+            logger.warning("⚠️ Payment failed or cancelled → ResultCode: %s", result_code)
 
         return JsonResponse({"message": "Callback received"}, status=200)
 
     except Exception as e:
-        logger.exception("❌ payment_confirmation failed")
+        logger.exception("❌ Error in payment_confirmation")
         return JsonResponse({"error": "Callback error", "details": str(e)}, status=500)
 
 
+# ✅ Check If Resource is Paid
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def is_resource_paid(request, resource_id):
@@ -139,5 +141,5 @@ def is_resource_paid(request, resource_id):
         logger.info("🔍 Payment Check → User: %s | Resource: %s | Paid: %s", request.user.username, resource.title, paid)
         return Response({'paid': paid})
     except Resource.DoesNotExist:
-        logger.error("❌ is_resource_paid → Resource ID not found: %s", resource_id)
+        logger.error("❌ Resource not found during payment check → ID: %s", resource_id)
         return Response({'error': 'Resource not found'}, status=404)

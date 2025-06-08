@@ -12,51 +12,62 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-# ✅ Admin-only: List all registered users
+# 🔐 Admin-only: View all users
 class UserListView(generics.ListAPIView):
     queryset = User.objects.all().order_by('-date_joined')
     serializer_class = UserSerializer
     permission_classes = [IsAdminUser]
 
 
-# ✅ Public: User Registration endpoint
+# ✅ Public: Register a new user
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def register_user(request):
     data = request.data
-    logger.debug("📥 Registration request received: %s", data)
+    logger.debug("📥 Registration data received: %s", data)
 
     email = data.get("email")
     password = data.get("password")
     name = data.get("name", "")
 
     if not email or not password:
-        logger.warning("❌ Missing email or password.")
-        return Response({"message": "Email and password are required."}, status=status.HTTP_400_BAD_REQUEST)
+        logger.warning("❌ Missing email or password during registration.")
+        return Response(
+            {"message": "Email and password are required."},
+            status=status.HTTP_400_BAD_REQUEST
+        )
 
     if User.objects.filter(username=email).exists():
-        logger.warning("⚠️ User already exists: %s", email)
-        return Response({"message": "User already exists."}, status=status.HTTP_400_BAD_REQUEST)
+        logger.warning("⚠️ Duplicate registration attempt for email: %s", email)
+        return Response(
+            {"message": "User already exists."},
+            status=status.HTTP_400_BAD_REQUEST
+        )
 
-    user = User.objects.create_user(username=email, email=email, password=password, first_name=name)
-    logger.info("✅ User registered successfully: %s", user.username)
+    user = User.objects.create_user(
+        username=email,
+        email=email,
+        password=password,
+        first_name=name
+    )
+    logger.info("✅ User registered: %s", user.username)
     return Response({"message": "User registered successfully."}, status=status.HTTP_201_CREATED)
 
 
-# ✅ Public: Login with email + password
+# ✅ Public: JWT Login
 class LoginView(APIView):
     permission_classes = [AllowAny]
 
     def post(self, request):
         email = request.data.get("email")
         password = request.data.get("password")
-        logger.debug("🔐 Login attempt for email: %s", email)
+        logger.debug("🔐 Login attempt for: %s", email)
 
         try:
             user = User.objects.get(email=email)
         except User.DoesNotExist:
-            logger.warning("❌ Login failed. Email not found: %s", email)
-            return Response({"message": "Invalid credentials"}, status=status.HTTP_401_UNAUTHORIZED)
+            logger.warning("❌ Login failed - email not found: %s", email)
+            return Response({"message": "Invalid credentials."}, status=status.HTTP_401_UNAUTHORIZED)
 
         user = authenticate(username=user.username, password=password)
         if user:
@@ -72,5 +83,5 @@ class LoginView(APIView):
                 },
             })
 
-        logger.warning("❌ Login failed. Incorrect password for: %s", email)
-        return Response({"message": "Invalid credentials"}, status=status.HTTP_401_UNAUTHORIZED)
+        logger.warning("❌ Login failed - incorrect password for: %s", email)
+        return Response({"message": "Invalid credentials."}, status=status.HTTP_401_UNAUTHORIZED)

@@ -1,8 +1,8 @@
 import os
 import logging
+from datetime import timedelta
 from django.db import models
 from django.conf import settings
-from datetime import timedelta
 from google.cloud import storage
 
 logger = logging.getLogger(__name__)
@@ -34,7 +34,10 @@ class Resource(models.Model):
     category = models.CharField(max_length=50, choices=CATEGORY_CHOICES)
     level = models.CharField(max_length=50, choices=LEVEL_CHOICES)
     term = models.CharField(
-        max_length=50, choices=TERM_CHOICES, blank=True, null=True,
+        max_length=50,
+        choices=TERM_CHOICES,
+        blank=True,
+        null=True,
         help_text="Required for Exams, Schemes of Work, and Lesson Plans"
     )
     is_free = models.BooleanField(default=False)
@@ -47,13 +50,13 @@ class Resource(models.Model):
     def get_file_url(self):
         """✅ Return the public URL if available."""
         url = self.file.url if self.file else None
-        logger.debug("📂 get_file_url() called: %s", url)
+        logger.debug("📂 get_file_url() called for %s → URL: %s", self.title, url)
         return url
 
     def get_signed_url(self, expiration_minutes=60):
-        """✅ Generate a signed URL for secure access (expires after N minutes)."""
+        """🔐 Generate a signed URL for temporary secure file access."""
         if not self.file:
-            logger.warning("⚠️ No file to sign in get_signed_url()")
+            logger.warning("⚠️ No file found in get_signed_url() for: %s", self.title)
             return None
 
         try:
@@ -64,34 +67,34 @@ class Resource(models.Model):
             signed_url = blob.generate_signed_url(
                 version="v4",
                 expiration=timedelta(minutes=expiration_minutes),
-                method="GET",
+                method="GET"
             )
-            logger.debug("🔐 Signed URL generated for %s: %s", self.file.name, signed_url)
+            logger.info("🔐 Signed URL created for %s: %s", self.file.name, signed_url)
             return signed_url
 
         except Exception as e:
-            logger.error("❌ Error generating signed URL for %s: %s", self.file.name, str(e))
+            logger.error("❌ Error creating signed URL for %s: %s", self.file.name, str(e))
             return None
 
     def delete(self, *args, **kwargs):
-        """✅ Deletes file from GCS and optionally from local 'media/' folder."""
+        """🗑️ Delete file from Google Cloud Storage and optionally local media."""
         file_name = self.file.name
-        logger.info("🗑️ Deleting file: %s", file_name)
+        logger.info("🗑️ Deleting Resource file: %s", file_name)
 
         try:
             storage_backend = self.file.storage
             if file_name and storage_backend.exists(file_name):
                 logger.debug("🧹 Deleting from GCS...")
                 storage_backend.delete(file_name)
-                logger.info("✅ File deleted from GCS: %s", file_name)
+                logger.info("✅ File removed from GCS: %s", file_name)
 
-            # Clean up from local if it exists
+            # Optionally remove from local 'media/' folder (e.g. in dev environments)
             local_path = os.path.join('media', file_name)
             if os.path.exists(local_path):
-                logger.debug("🧹 Deleting local file: %s", local_path)
                 os.remove(local_path)
+                logger.info("🧹 Local file deleted: %s", local_path)
 
         except Exception as e:
-            logger.error("❌ Error deleting file: %s", str(e))
+            logger.exception("❌ Exception deleting file: %s", str(e))
 
         super().delete(*args, **kwargs)

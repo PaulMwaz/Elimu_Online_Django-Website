@@ -1,4 +1,6 @@
-# Python
+# ========================
+# 🐍 Python
+# ========================
 __pycache__/
 *.py[cod]
 *.pyo
@@ -7,38 +9,72 @@ __pycache__/
 *.egg-info/
 *.egg
 
-# Django migrations
+# ========================
+# 🔧 Django Migrations & DB
+# ========================
 **/migrations/
 db.sqlite3
+*.db
 
-# Virtual environment
+# ========================
+# 📦 Virtual Environments
+# ========================
 venv/
 env/
+.venv/
 
-# VSCode or PyCharm
+# ========================
+# 💻 IDE/Editor Config
+# ========================
 .vscode/
 .idea/
 
-# Environment variables and secrets
+# ========================
+# 🔐 Environment Variables & Secrets
+# ========================
 .env
+.env.*
+*.env
+*.secret
 gcs-credentials.json
+GOOGLE_APPLICATION_CREDENTIALS.json
 
-# Logs and debug files
+# ========================
+# 🪵 Logs and Debug Files
+# ========================
 *.log
 *.pot
 *.pyc
 .DS_Store
-
-# Static and media files (if generated)
-staticfiles/
-media/
-
-# Compiled and cache files
 *.bak
 *.swp
 *.tmp
 *.lock
 
-# pipenv or poetry lock files (if used)
+# ========================
+# 🌐 Static/Media Files (Generated)
+# ========================
+staticfiles/
+static/
+media/
+resources/
+
+# ========================
+# 📜 Compiled JavaScript / Frontend (if React/Vite)
+# ========================
+node_modules/
+dist/
+build/
+public/build/
+
+# ========================
+# 📦 Pipenv / Poetry
+# ========================
 Pipfile.lock
 poetry.lock
+
+# ========================
+# 🔒 JWT Tokens (If Stored)
+# ========================
+*.jwt
+*.token

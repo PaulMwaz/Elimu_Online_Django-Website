@@ -19,16 +19,21 @@ except Exception as e:
 
 
 def upload_file_to_gcs(local_file_path, gcs_path, content_type="application/octet-stream"):
-    """Uploads a file to GCS, makes it public, and deletes the local file."""
+    """
+    📤 Uploads a file to Google Cloud Storage:
+    - Uploads with optional MIME type
+    - Makes file publicly accessible
+    - Deletes local file after upload
+    """
     logger.info("📤 Uploading file to GCS: %s → %s", local_file_path, gcs_path)
 
     try:
         blob = bucket.blob(gcs_path)
         blob.upload_from_filename(local_file_path, content_type=content_type)
         blob.make_public()
-        logger.debug("✅ Upload complete. File is now public: %s", blob.public_url)
+        logger.debug("✅ Upload complete. Public URL: %s", blob.public_url)
 
-        # Delete local file after upload
+        # Clean up local file
         if os.path.exists(local_file_path):
             os.remove(local_file_path)
             logger.debug("🧹 Local file deleted: %s", local_file_path)
@@ -41,14 +46,16 @@ def upload_file_to_gcs(local_file_path, gcs_path, content_type="application/octe
 
 
 def generate_signed_url(gcs_path, expiration_minutes=60):
-    """Generates a secure signed URL valid for a limited time."""
+    """
+    🔐 Generates a signed URL for secure temporary file access.
+    """
     logger.debug("🔐 Generating signed URL for: %s", gcs_path)
 
     try:
         blob = bucket.blob(gcs_path)
 
         if not blob.exists():
-            logger.warning("⚠️ Blob does not exist: %s", gcs_path)
+            logger.warning("⚠️ File does not exist in GCS: %s", gcs_path)
             return None
 
         url = blob.generate_signed_url(
@@ -56,7 +63,7 @@ def generate_signed_url(gcs_path, expiration_minutes=60):
             expiration=timedelta(minutes=expiration_minutes),
             method="GET",
         )
-        logger.debug("✅ Signed URL generated: %s", url)
+        logger.debug("✅ Signed URL: %s", url)
         return url
 
     except Exception as e:
@@ -65,18 +72,20 @@ def generate_signed_url(gcs_path, expiration_minutes=60):
 
 
 def delete_file_from_gcs(gcs_path):
-    """Deletes a file from GCS if it exists."""
-    logger.info("🗑️ Attempting to delete GCS file: %s", gcs_path)
+    """
+    🗑️ Deletes a file from GCS if it exists.
+    """
+    logger.info("🗑️ Attempting to delete file from GCS: %s", gcs_path)
 
     try:
         blob = bucket.blob(gcs_path)
 
         if blob.exists():
             blob.delete()
-            logger.info("✅ File deleted from GCS: %s", gcs_path)
+            logger.info("✅ File deleted: %s", gcs_path)
             return True
         else:
-            logger.warning("⚠️ File not found in GCS: %s", gcs_path)
+            logger.warning("⚠️ File not found: %s", gcs_path)
             return False
 
     except Exception as e:

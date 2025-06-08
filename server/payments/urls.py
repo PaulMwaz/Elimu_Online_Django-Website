@@ -9,21 +9,21 @@ from .views import (
 
 import logging
 logger = logging.getLogger(__name__)
+
 logger.info("✅ DEBUG: payments/urls.py loaded")
 
-# URL patterns
+# ✅ URL Patterns
 urlpatterns = [
-    # Wallet APIs
+    # 💼 Wallet Endpoints
     path('wallet/', get_wallet, name='get_wallet'),
     path('top-up/', top_up_wallet, name='top_up_wallet'),
 
-    # M-Pesa Payment Flow
-    path('initiate/', initiate_payment, name='initiate_payment'),  # 🔄 Initiates STK Push
-    path('confirmation/', payment_confirmation, name='payment_confirmation'),  # 📥 M-Pesa webhook
-    path('<int:resource_id>/is-paid-for/', is_resource_paid, name='is_resource_paid'),  # ✅ Access check
+    # 📲 M-Pesa STK Push + Webhook
+    path('initiate/', initiate_payment, name='initiate_payment'),  # 🔁 STK push trigger
+    path('confirmation/', payment_confirmation, name='payment_confirmation'),  # 📥 Webhook callback
+    path('<int:resource_id>/is-paid-for/', is_resource_paid, name='is_resource_paid'),  # ✅ Access verification
 ]
 
-# 🔍 Log the registered routes for debug clarity
-logger.info("✅ DEBUG: Registered URL patterns in payments.urls:")
+# ✅ Log Routes (for deployment debug clarity)
 for route in urlpatterns:
-    logger.info(f"  🔗 Route name: {route.name} → Path: {route.pattern}")
+    logger.info("🔗 Registered Route → %s: %s", route.name, route.pattern)
