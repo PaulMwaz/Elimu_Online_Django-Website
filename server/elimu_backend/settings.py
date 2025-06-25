@@ -1,5 +1,4 @@
 import os
-import json
 import logging
 from pathlib import Path
 from datetime import timedelta
@@ -116,15 +115,15 @@ STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
-# ✅ Google Cloud Storage via ENV variable (Render-friendly)
+# ✅ Google Cloud Storage (from secret file)
 GS_BUCKET_NAME = os.getenv("GS_BUCKET_NAME")
-google_creds_json = os.getenv("GOOGLE_APPLICATION_CREDENTIALS")
+gcs_path = os.getenv("GOOGLE_APPLICATION_CREDENTIALS")
 
-if google_creds_json:
-    google_creds_dict = json.loads(google_creds_json)
-    GS_CREDENTIALS = service_account.Credentials.from_service_account_info(google_creds_dict)
+if gcs_path and os.path.exists(gcs_path):
+    GS_CREDENTIALS = service_account.Credentials.from_service_account_file(gcs_path)
 else:
     GS_CREDENTIALS = None
+    logger.warning("❌ GCS credentials file not found or path missing!")
 
 DEFAULT_FILE_STORAGE = 'storages.backends.gcloud.GoogleCloudStorage'
 MEDIA_URL = f"https://storage.googleapis.com/{GS_BUCKET_NAME}/"
