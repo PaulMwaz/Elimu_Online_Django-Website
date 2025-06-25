@@ -1,4 +1,5 @@
 import os
+import json
 import logging
 from pathlib import Path
 from datetime import timedelta
@@ -108,18 +109,23 @@ USE_I18N = True
 USE_L10N = True
 USE_TZ = True
 
-# ✅ Static & Media (adjust for cPanel)
+# ✅ Static & Media (adjust for cPanel and Render)
 STATIC_URL = '/static/'
 STATICFILES_DIRS = [os.path.join(BASE_DIR, 'static')]
-STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')  # Required for collectstatic
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
-# ✅ Google Cloud Storage
+# ✅ Google Cloud Storage via ENV variable (Render-friendly)
 GS_BUCKET_NAME = os.getenv("GS_BUCKET_NAME")
-GS_CREDENTIALS = service_account.Credentials.from_service_account_file(
-    os.path.join(BASE_DIR, "gcs-credentials.json")
-)
+google_creds_json = os.getenv("GOOGLE_APPLICATION_CREDENTIALS")
+
+if google_creds_json:
+    google_creds_dict = json.loads(google_creds_json)
+    GS_CREDENTIALS = service_account.Credentials.from_service_account_info(google_creds_dict)
+else:
+    GS_CREDENTIALS = None
+
 DEFAULT_FILE_STORAGE = 'storages.backends.gcloud.GoogleCloudStorage'
 MEDIA_URL = f"https://storage.googleapis.com/{GS_BUCKET_NAME}/"
 
