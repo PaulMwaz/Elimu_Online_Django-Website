@@ -28,6 +28,11 @@ python-dotenv>=1.0.0
 djangorestframework-simplejwt>=5.3.0
 
 # ====================================
+# 🐘 PostgreSQL Driver (Required)
+# ====================================
+psycopg2-binary>=2.9.9
+
+# ====================================
 # 🚀 Production WSGI HTTP Server (Required for Render)
 # ====================================
 gunicorn>=21.2.0
