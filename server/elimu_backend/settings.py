@@ -5,7 +5,7 @@ from datetime import timedelta
 from google.oauth2 import service_account
 from dotenv import load_dotenv
 
-# ✅ Load .env variables
+# ✅ Load environment variables
 load_dotenv()
 
 # ✅ Base directory
@@ -26,12 +26,12 @@ LOGGING = {
 logger = logging.getLogger(__name__)
 logger.info("✅ settings.py loaded successfully")
 
-# ✅ Security
+# ✅ Security Settings
 SECRET_KEY = os.getenv('SECRET_KEY', 'fallback-secret-key')
 DEBUG = os.getenv('DEBUG', 'True') == 'True'
 ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', 'localhost,127.0.0.1').split(',')
 
-# ✅ Installed Applications
+# ✅ Installed Apps
 INSTALLED_APPS = [
     'jazzmin',
     'django.contrib.admin',
@@ -41,13 +41,13 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
 
-    # 3rd party
+    # Third-party
     'rest_framework',
     'rest_framework_simplejwt',
     'corsheaders',
     'storages',
 
-    # Custom apps
+    # Project apps
     'resources',
     'users',
     'payments',
@@ -56,7 +56,7 @@ INSTALLED_APPS = [
 
 # ✅ Middleware
 MIDDLEWARE = [
-    'corsheaders.middleware.CorsMiddleware',
+    'corsheaders.middleware.CorsMiddleware',  # must be first
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -65,7 +65,7 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
 ]
 
-# ✅ URL & WSGI/ASGI
+# ✅ URL Config
 ROOT_URLCONF = 'elimu_backend.urls'
 WSGI_APPLICATION = 'elimu_backend.wsgi.application'
 
@@ -73,7 +73,7 @@ WSGI_APPLICATION = 'elimu_backend.wsgi.application'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [os.path.join(BASE_DIR, 'templates')],
+        'DIRS': [BASE_DIR / 'templates'],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -101,26 +101,28 @@ DATABASES = {
 # ✅ Authentication
 AUTH_PASSWORD_VALIDATORS = []
 
-# ✅ Localization
+# ✅ Internationalization
 LANGUAGE_CODE = 'en-us'
 TIME_ZONE = 'Africa/Nairobi'
 USE_I18N = True
 USE_L10N = True
 USE_TZ = True
 
-# ✅ Static & Media (adjust for cPanel and Render)
+# ✅ Static and Media Files
 STATIC_URL = '/static/'
-STATICFILES_DIRS = [os.path.join(BASE_DIR, 'static')]
-STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
-MEDIA_URL = '/media/'
-MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+STATICFILES_DIRS = [BASE_DIR / 'static']
+STATIC_ROOT = BASE_DIR / 'staticfiles'
 
-# ✅ Google Cloud Storage (from secret file)
+MEDIA_URL = '/media/'
+MEDIA_ROOT = BASE_DIR / 'media'
+
+# ✅ Google Cloud Storage
 GS_BUCKET_NAME = os.getenv("GS_BUCKET_NAME")
 gcs_path = os.getenv("GOOGLE_APPLICATION_CREDENTIALS")
 
 if gcs_path and os.path.exists(gcs_path):
     GS_CREDENTIALS = service_account.Credentials.from_service_account_file(gcs_path)
+    logger.debug("✅ GCS credentials loaded from file.")
 else:
     GS_CREDENTIALS = None
     logger.warning("❌ GCS credentials file not found or path missing!")
@@ -143,10 +145,15 @@ SIMPLE_JWT = {
     'AUTH_HEADER_TYPES': ('Bearer',),
 }
 
-# ✅ CORS
-CORS_ALLOW_ALL_ORIGINS = True
+# ✅ CORS Settings
+CORS_ALLOW_CREDENTIALS = True
+CORS_ALLOWED_ORIGINS = [
+    "https://elimu-online.onrender.com",  # ✅ your frontend origin
+]
 
-# ✅ Jazzmin Admin Panel Configuration
+logger.debug("✅ CORS configuration loaded")
+
+# ✅ Jazzmin Admin Theme
 JAZZMIN_SETTINGS = {
     "site_title": "Elimu-Online Admin",
     "site_header": "Elimu-Online Dashboard",
@@ -173,8 +180,8 @@ MPESA_CONSUMER_SECRET = os.getenv("MPESA_CONSUMER_SECRET")
 MPESA_PASSKEY = os.getenv("MPESA_PASSKEY")
 MPESA_CALLBACK_URL = os.getenv("MPESA_CALLBACK_URL")
 
-# ✅ Auto Field Type
+# ✅ Auto Field
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-# ✅ Final confirmation log
+# ✅ Final log
 logger.debug("✅ settings.py completed. All configs loaded.")
