@@ -155,9 +155,8 @@ SIMPLE_JWT = {
 logger.debug("✅ JWT settings applied.")
 
 # ✅ CORS settings
-CORS_ALLOWED_ORIGINS = [
-    "https://elimu-online.onrender.com",
-    "https://elimu-backend-59739536402.europe-west1.run.app",
+CORS_ALLOWED_ORIGIN_REGEXES = [
+    r"^https://.*\.onrender\.com$",
 ]
 CORS_ALLOW_CREDENTIALS = True
 CORS_ALLOW_HEADERS = list(default_headers) + [
@@ -172,7 +171,7 @@ CORS_ALLOW_METHODS = [
     "POST",
     "PUT",
 ]
-logger.debug(f"✅ CORS allowed origins: {CORS_ALLOWED_ORIGINS}")
+logger.debug(f"✅ CORS regex origins: {CORS_ALLOWED_ORIGIN_REGEXES}")
 
 # ✅ Jazzmin admin settings
 JAZZMIN_SETTINGS = {
