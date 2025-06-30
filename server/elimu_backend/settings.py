@@ -30,7 +30,9 @@ logger.info("✅ settings.py loaded successfully")
 # ✅ Security settings
 SECRET_KEY = os.getenv('SECRET_KEY', 'fallback-secret-key')
 DEBUG = os.getenv('DEBUG', 'True') == 'True'
-ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', 'localhost,127.0.0.1').split(',')
+ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', 'localhost,127.0.0.1').split(',') + [
+    'elimu-backend-59739536402.europe-west1.run.app'
+]
 logger.debug(f"✅ Allowed Hosts: {ALLOWED_HOSTS}")
 
 # ✅ Installed apps
@@ -99,6 +101,7 @@ DATABASES = {
         'PORT': os.getenv('DB_PORT', '5432'),
     }
 }
+logger.debug("✅ Database config loaded.")
 
 # ✅ Password validation
 AUTH_PASSWORD_VALIDATORS = []
@@ -141,6 +144,7 @@ REST_FRAMEWORK = {
         'rest_framework.permissions.AllowAny',
     ],
 }
+logger.debug("✅ REST Framework loaded.")
 
 # ✅ JWT settings
 SIMPLE_JWT = {
@@ -148,10 +152,12 @@ SIMPLE_JWT = {
     'REFRESH_TOKEN_LIFETIME': timedelta(days=7),
     'AUTH_HEADER_TYPES': ('Bearer',),
 }
+logger.debug("✅ JWT settings applied.")
 
 # ✅ CORS settings
 CORS_ALLOWED_ORIGINS = [
     "https://elimu-online.onrender.com",
+    "https://elimu-backend-59739536402.europe-west1.run.app",
 ]
 CORS_ALLOW_CREDENTIALS = True
 CORS_ALLOW_HEADERS = list(default_headers) + [
@@ -186,6 +192,7 @@ JAZZMIN_SETTINGS = {
     "default_icon_parents": "fas fa-chevron-circle-right",
     "default_icon_children": "fas fa-circle",
 }
+logger.debug("✅ Jazzmin loaded.")
 
 # ✅ M-Pesa Daraja credentials
 MPESA_ENV = os.getenv("MPESA_ENV", "sandbox")
@@ -194,8 +201,9 @@ MPESA_CONSUMER_KEY = os.getenv("MPESA_CONSUMER_KEY")
 MPESA_CONSUMER_SECRET = os.getenv("MPESA_CONSUMER_SECRET")
 MPESA_PASSKEY = os.getenv("MPESA_PASSKEY")
 MPESA_CALLBACK_URL = os.getenv("MPESA_CALLBACK_URL")
+logger.debug("✅ M-Pesa settings loaded.")
 
 # ✅ Default auto field
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
-
+logger.debug("✅ Default auto field set.")
 logger.debug("✅ All settings loaded and debug logs initialized.")
