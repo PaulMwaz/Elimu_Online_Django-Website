@@ -4,22 +4,20 @@ from pathlib import Path
 from datetime import timedelta
 from google.oauth2 import service_account
 from dotenv import load_dotenv
-from corsheaders.defaults import default_headers  # ✅ Needed for extended CORS headers
+from corsheaders.defaults import default_headers
 
-# ✅ Load .env
+# ✅ Load environment variables
 load_dotenv()
 
-# ✅ Base Directory
+# ✅ Base directory
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-# ✅ Logging
+# ✅ Logging configuration
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
     'handlers': {
-        'console': {
-            'class': 'logging.StreamHandler',
-        },
+        'console': {'class': 'logging.StreamHandler'},
     },
     'root': {
         'handlers': ['console'],
@@ -29,13 +27,13 @@ LOGGING = {
 logger = logging.getLogger(__name__)
 logger.info("✅ settings.py loaded successfully")
 
-# ✅ Security
+# ✅ Security settings
 SECRET_KEY = os.getenv('SECRET_KEY', 'fallback-secret-key')
 DEBUG = os.getenv('DEBUG', 'True') == 'True'
 ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', 'localhost,127.0.0.1').split(',')
 logger.debug(f"✅ Allowed Hosts: {ALLOWED_HOSTS}")
 
-# ✅ Installed Apps
+# ✅ Installed apps
 INSTALLED_APPS = [
     'jazzmin',
     'django.contrib.admin',
@@ -45,13 +43,13 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
 
-    # 3rd Party
+    # 3rd party
     'rest_framework',
     'rest_framework_simplejwt',
     'corsheaders',
     'storages',
 
-    # Local Apps
+    # Local apps
     'resources',
     'users',
     'payments',
@@ -60,7 +58,7 @@ INSTALLED_APPS = [
 
 # ✅ Middleware
 MIDDLEWARE = [
-    'corsheaders.middleware.CorsMiddleware',  # First
+    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -69,7 +67,7 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
 ]
 
-# ✅ URL and WSGI
+# ✅ URLs and WSGI
 ROOT_URLCONF = 'elimu_backend.urls'
 WSGI_APPLICATION = 'elimu_backend.wsgi.application'
 
@@ -102,7 +100,7 @@ DATABASES = {
     }
 }
 
-# ✅ Password Validators
+# ✅ Password validation
 AUTH_PASSWORD_VALIDATORS = []
 
 # ✅ Localization
@@ -112,7 +110,7 @@ USE_I18N = True
 USE_L10N = True
 USE_TZ = True
 
-# ✅ Static & Media
+# ✅ Static & media files
 STATIC_URL = '/static/'
 STATICFILES_DIRS = [BASE_DIR / 'static']
 STATIC_ROOT = BASE_DIR / 'staticfiles'
@@ -134,7 +132,7 @@ else:
 DEFAULT_FILE_STORAGE = 'storages.backends.gcloud.GoogleCloudStorage'
 MEDIA_URL = f"https://storage.googleapis.com/{GS_BUCKET_NAME}/"
 
-# ✅ Django REST Framework
+# ✅ REST Framework
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
         'rest_framework_simplejwt.authentication.JWTAuthentication',
@@ -144,7 +142,7 @@ REST_FRAMEWORK = {
     ],
 }
 
-# ✅ JWT Settings
+# ✅ JWT settings
 SIMPLE_JWT = {
     'ACCESS_TOKEN_LIFETIME': timedelta(days=1),
     'REFRESH_TOKEN_LIFETIME': timedelta(days=7),
@@ -162,7 +160,7 @@ CORS_ALLOW_HEADERS = list(default_headers) + [
 ]
 logger.debug(f"✅ CORS allowed origins: {CORS_ALLOWED_ORIGINS}")
 
-# ✅ Jazzmin Admin
+# ✅ Jazzmin admin settings
 JAZZMIN_SETTINGS = {
     "site_title": "Elimu-Online Admin",
     "site_header": "Elimu-Online Dashboard",
@@ -181,7 +179,7 @@ JAZZMIN_SETTINGS = {
     "default_icon_children": "fas fa-circle",
 }
 
-# ✅ M-Pesa Daraja Config
+# ✅ M-Pesa
 MPESA_ENV = os.getenv("MPESA_ENV", "sandbox")
 MPESA_SHORTCODE = os.getenv("MPESA_SHORTCODE")
 MPESA_CONSUMER_KEY = os.getenv("MPESA_CONSUMER_KEY")
@@ -189,7 +187,7 @@ MPESA_CONSUMER_SECRET = os.getenv("MPESA_CONSUMER_SECRET")
 MPESA_PASSKEY = os.getenv("MPESA_PASSKEY")
 MPESA_CALLBACK_URL = os.getenv("MPESA_CALLBACK_URL")
 
-# ✅ Default Auto Field
+# ✅ Default auto field
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 logger.debug("✅ All settings loaded and debug logs initialized.")
