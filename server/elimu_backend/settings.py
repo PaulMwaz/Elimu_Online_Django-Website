@@ -149,7 +149,7 @@ SIMPLE_JWT = {
     'AUTH_HEADER_TYPES': ('Bearer',),
 }
 
-# ✅ CORS
+# ✅ CORS settings
 CORS_ALLOWED_ORIGINS = [
     "https://elimu-online.onrender.com",
 ]
@@ -157,6 +157,14 @@ CORS_ALLOW_CREDENTIALS = True
 CORS_ALLOW_HEADERS = list(default_headers) + [
     'access-control-allow-origin',
     'access-control-allow-credentials',
+]
+CORS_ALLOW_METHODS = [
+    "DELETE",
+    "GET",
+    "OPTIONS",  # 💥 Critical for resolving preflight errors
+    "PATCH",
+    "POST",
+    "PUT",
 ]
 logger.debug(f"✅ CORS allowed origins: {CORS_ALLOWED_ORIGINS}")
 
@@ -179,7 +187,7 @@ JAZZMIN_SETTINGS = {
     "default_icon_children": "fas fa-circle",
 }
 
-# ✅ M-Pesa
+# ✅ M-Pesa Daraja credentials
 MPESA_ENV = os.getenv("MPESA_ENV", "sandbox")
 MPESA_SHORTCODE = os.getenv("MPESA_SHORTCODE")
 MPESA_CONSUMER_KEY = os.getenv("MPESA_CONSUMER_KEY")
