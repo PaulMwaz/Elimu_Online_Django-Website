@@ -13,8 +13,8 @@ google-cloud-storage = ">=2.14.0"
 google-auth = ">=2.0.0"
 django-jazzmin = ">=2.6.0"
 python-dotenv = ">=1.0.0"
-django-cors-headers = "*"
 djangorestframework-simplejwt = "*"
+django-cors-headers = "*"
 
 [dev-packages]
 
