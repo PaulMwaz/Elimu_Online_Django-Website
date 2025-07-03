@@ -8,6 +8,11 @@ import logging
 
 # ✅ Setup logger
 logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
+handler = logging.StreamHandler()
+handler.setFormatter(logging.Formatter('%(asctime)s [%(levelname)s] %(message)s'))
+logger.addHandler(handler)
+
 logger.info("✅ DEBUG: elimu_backend/urls.py loaded successfully")
 
 # ✅ Optional API root endpoint
@@ -25,27 +30,39 @@ def api_root(request):
         }
     })
 
-# ✅ Main URL patterns
-urlpatterns = [
-    path('', api_root, name='api-root'),
+# ✅ Main URL patterns with error handling
+urlpatterns = []
 
+try:
     # 🛠 Django Admin Panel
-    path('admin/', admin.site.urls),
+    urlpatterns.append(path('admin/', admin.site.urls))
+    logger.debug("🔗 Registered route: /admin/")
 
     # 🧑‍💼 Custom Admin Dashboard (Dashboard App)
-    path('admin-panel/', include('dashboard.urls')),
+    urlpatterns.append(path('admin-panel/', include('dashboard.urls')))
+    logger.debug("🔗 Registered route: /admin-panel/")
 
     # 📦 API Routes
-    path('api/resources/', include('resources.urls')),
-    path('api/users/', include('users.urls')),
-    path('api/payment/', include('payments.urls')),
+    urlpatterns.append(path('api/resources/', include('resources.urls')))
+    logger.debug("🔗 Registered route: /api/resources/")
+
+    urlpatterns.append(path('api/users/', include('users.urls')))
+    logger.debug("🔗 Registered route: /api/users/")
+
+    urlpatterns.append(path('api/payment/', include('payments.urls')))
+    logger.debug("🔗 Registered route: /api/payment/")
 
     # 🔐 JWT Authentication
-    path('api/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
-    path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
-]
+    urlpatterns.append(path('api/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'))
+    urlpatterns.append(path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'))
+    logger.debug("🔐 Registered JWT routes.")
 
-# ✅ Log all registered routes (for deployment debugging)
-logger.debug("✅ DEBUG: urlpatterns loaded:")
-for route in urlpatterns:
-    logger.debug(f"🔗 {route}")
+    # 🎯 Root endpoint
+    urlpatterns.insert(0, path('', api_root, name='api-root'))
+    logger.debug("🔗 Registered route: /")
+
+except Exception as e:
+    logger.error(f"❌ Error loading urlpatterns: {e}")
+
+# ✅ Final confirmation
+logger.info("✅ All urlpatterns loaded successfully for Elimu-Online backend.")

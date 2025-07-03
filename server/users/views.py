@@ -10,6 +10,7 @@ from .serializers import UserSerializer
 
 import logging
 logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
 
 
 # 🔐 Admin-only: View all users
@@ -17,6 +18,10 @@ class UserListView(generics.ListAPIView):
     queryset = User.objects.all().order_by('-date_joined')
     serializer_class = UserSerializer
     permission_classes = [IsAdminUser]
+
+    def get_queryset(self):
+        logger.debug("👮 Admin fetched user list.")
+        return super().get_queryset()
 
 
 # ✅ Public: Register a new user
@@ -50,8 +55,16 @@ def register_user(request):
         password=password,
         first_name=name
     )
-    logger.info("✅ User registered: %s", user.username)
-    return Response({"message": "User registered successfully."}, status=status.HTTP_201_CREATED)
+    logger.info("✅ User registered successfully: %s", user.username)
+
+    serializer = UserSerializer(user)
+    return Response(
+        {
+            "message": "User registered successfully.",
+            "user": serializer.data
+        },
+        status=status.HTTP_201_CREATED
+    )
 
 
 # ✅ Public: JWT Login
@@ -67,7 +80,10 @@ class LoginView(APIView):
             user = User.objects.get(email=email)
         except User.DoesNotExist:
             logger.warning("❌ Login failed - email not found: %s", email)
-            return Response({"message": "Invalid credentials."}, status=status.HTTP_401_UNAUTHORIZED)
+            return Response(
+                {"message": "Invalid credentials."},
+                status=status.HTTP_401_UNAUTHORIZED
+            )
 
         user = authenticate(username=user.username, password=password)
         if user:
@@ -84,4 +100,7 @@ class LoginView(APIView):
             })
 
         logger.warning("❌ Login failed - incorrect password for: %s", email)
-        return Response({"message": "Invalid credentials."}, status=status.HTTP_401_UNAUTHORIZED)
+        return Response(
+            {"message": "Invalid credentials."},
+            status=status.HTTP_401_UNAUTHORIZED
+        )
