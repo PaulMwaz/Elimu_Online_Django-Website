@@ -58,7 +58,7 @@ INSTALLED_APPS = [
     'dashboard',
 ]
 
-# ✅ Middleware (CORS must be first!)
+# ✅ Middleware (CORS must be FIRST!)
 MIDDLEWARE = [
     'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
@@ -154,7 +154,10 @@ SIMPLE_JWT = {
 }
 logger.debug("✅ JWT settings applied.")
 
-# ✅ CORS settings
+# ✅ CORS settings (MOST IMPORTANT)
+CORS_ALLOWED_ORIGINS = [
+    "https://elimu-online.onrender.com",  # frontend
+]
 CORS_ALLOWED_ORIGIN_REGEXES = [
     r"^https://.*\.onrender\.com$",
 ]
@@ -164,7 +167,7 @@ CORS_ALLOW_HEADERS = list(default_headers) + [
     'access-control-allow-credentials',
 ]
 CORS_ALLOW_METHODS = list(default_methods)
-logger.debug(f"✅ CORS regex origins: {CORS_ALLOWED_ORIGIN_REGEXES}")
+logger.debug(f"✅ CORS origins and headers loaded.")
 
 # ✅ Jazzmin admin settings
 JAZZMIN_SETTINGS = {
