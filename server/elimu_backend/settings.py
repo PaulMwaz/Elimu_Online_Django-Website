@@ -2,8 +2,8 @@ import os
 import logging
 from pathlib import Path
 from datetime import timedelta
-from google.oauth2 import service_account
 from dotenv import load_dotenv
+from google.oauth2 import service_account
 from corsheaders.defaults import default_headers, default_methods
 
 # ✅ Load environment variables
@@ -31,7 +31,7 @@ logger.info("✅ settings.py loaded successfully")
 SECRET_KEY = os.getenv('SECRET_KEY', 'fallback-secret-key')
 DEBUG = os.getenv('DEBUG', 'True') == 'True'
 ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', 'localhost,127.0.0.1').split(',') + [
-    'elimu-backend-59739536402.europe-west1.run.app'
+    'elimu-backend-59739536402.europe-west1.run.app',
 ]
 logger.debug(f"✅ Allowed Hosts: {ALLOWED_HOSTS}")
 
@@ -45,7 +45,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
 
-    # 3rd party
+    # 3rd-party
     'rest_framework',
     'rest_framework_simplejwt',
     'corsheaders',
@@ -58,9 +58,9 @@ INSTALLED_APPS = [
     'dashboard',
 ]
 
-# ✅ Middleware (CORS must be FIRST!)
+# ✅ Middleware (CORS FIRST)
 MIDDLEWARE = [
-    'corsheaders.middleware.CorsMiddleware',
+    'corsheaders.middleware.CorsMiddleware',  # 🔥 MUST be first
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -94,10 +94,10 @@ TEMPLATES = [
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': os.getenv('DB_NAME', 'elimu_db'),
-        'USER': os.getenv('DB_USER', 'elimu_user'),
-        'PASSWORD': os.getenv('DB_PASSWORD', ''),
-        'HOST': os.getenv('DB_HOST', 'localhost'),
+        'NAME': os.getenv('DB_NAME'),
+        'USER': os.getenv('DB_USER'),
+        'PASSWORD': os.getenv('DB_PASSWORD'),
+        'HOST': os.getenv('DB_HOST'),
         'PORT': os.getenv('DB_PORT', '5432'),
     }
 }
@@ -135,7 +135,7 @@ else:
 DEFAULT_FILE_STORAGE = 'storages.backends.gcloud.GoogleCloudStorage'
 MEDIA_URL = f"https://storage.googleapis.com/{GS_BUCKET_NAME}/"
 
-# ✅ REST Framework
+# ✅ Django REST Framework
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
         'rest_framework_simplejwt.authentication.JWTAuthentication',
@@ -146,7 +146,7 @@ REST_FRAMEWORK = {
 }
 logger.debug("✅ REST Framework loaded.")
 
-# ✅ JWT settings
+# ✅ JWT Configuration
 SIMPLE_JWT = {
     'ACCESS_TOKEN_LIFETIME': timedelta(days=1),
     'REFRESH_TOKEN_LIFETIME': timedelta(days=7),
@@ -154,22 +154,22 @@ SIMPLE_JWT = {
 }
 logger.debug("✅ JWT settings applied.")
 
-# ✅ CORS settings (MOST IMPORTANT)
+# ✅ CORS Configuration
 CORS_ALLOWED_ORIGINS = [
-    "https://elimu-online.onrender.com",  # frontend
+    "https://elimu-online.onrender.com",
 ]
 CORS_ALLOWED_ORIGIN_REGEXES = [
     r"^https://.*\.onrender\.com$",
 ]
 CORS_ALLOW_CREDENTIALS = True
 CORS_ALLOW_HEADERS = list(default_headers) + [
-    'access-control-allow-origin',
-    'access-control-allow-credentials',
+    "access-control-allow-origin",
+    "access-control-allow-credentials",
 ]
 CORS_ALLOW_METHODS = list(default_methods)
-logger.debug(f"✅ CORS origins and headers loaded.")
+logger.debug(f"✅ CORS config complete with origins: {CORS_ALLOWED_ORIGINS}")
 
-# ✅ Jazzmin admin settings
+# ✅ Jazzmin admin theme
 JAZZMIN_SETTINGS = {
     "site_title": "Elimu-Online Admin",
     "site_header": "Elimu-Online Dashboard",
@@ -187,18 +187,19 @@ JAZZMIN_SETTINGS = {
     "default_icon_parents": "fas fa-chevron-circle-right",
     "default_icon_children": "fas fa-circle",
 }
-logger.debug("✅ Jazzmin loaded.")
+logger.debug("✅ Jazzmin settings loaded.")
 
-# ✅ M-Pesa Daraja credentials
+# ✅ M-Pesa configuration
 MPESA_ENV = os.getenv("MPESA_ENV", "sandbox")
 MPESA_SHORTCODE = os.getenv("MPESA_SHORTCODE")
 MPESA_CONSUMER_KEY = os.getenv("MPESA_CONSUMER_KEY")
 MPESA_CONSUMER_SECRET = os.getenv("MPESA_CONSUMER_SECRET")
 MPESA_PASSKEY = os.getenv("MPESA_PASSKEY")
 MPESA_CALLBACK_URL = os.getenv("MPESA_CALLBACK_URL")
-logger.debug("✅ M-Pesa settings loaded.")
+logger.debug("✅ M-Pesa credentials loaded.")
 
-# ✅ Default auto field
+# ✅ Default Auto Field
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 logger.debug("✅ Default auto field set.")
-logger.debug("✅ All settings loaded and debug logs initialized.")
+
+logger.debug("✅ All settings loaded and ready.")
