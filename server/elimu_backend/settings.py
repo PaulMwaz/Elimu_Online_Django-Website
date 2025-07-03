@@ -4,7 +4,7 @@ from pathlib import Path
 from datetime import timedelta
 from google.oauth2 import service_account
 from dotenv import load_dotenv
-from corsheaders.defaults import default_headers
+from corsheaders.defaults import default_headers, default_methods
 
 # ✅ Load environment variables
 load_dotenv()
@@ -58,7 +58,7 @@ INSTALLED_APPS = [
     'dashboard',
 ]
 
-# ✅ Middleware
+# ✅ Middleware (CORS must be first!)
 MIDDLEWARE = [
     'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
@@ -163,14 +163,7 @@ CORS_ALLOW_HEADERS = list(default_headers) + [
     'access-control-allow-origin',
     'access-control-allow-credentials',
 ]
-CORS_ALLOW_METHODS = [
-    "DELETE",
-    "GET",
-    "OPTIONS",  # 💥 Critical for resolving preflight errors
-    "PATCH",
-    "POST",
-    "PUT",
-]
+CORS_ALLOW_METHODS = list(default_methods)
 logger.debug(f"✅ CORS regex origins: {CORS_ALLOWED_ORIGIN_REGEXES}")
 
 # ✅ Jazzmin admin settings
