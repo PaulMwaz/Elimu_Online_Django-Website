@@ -1,5 +1,3 @@
-# elimu_backend/urls.py
-
 from django.contrib import admin
 from django.urls import path, include
 from django.http import JsonResponse
@@ -9,9 +7,12 @@ import logging
 # ✅ Setup logger
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
-handler = logging.StreamHandler()
-handler.setFormatter(logging.Formatter('%(asctime)s [%(levelname)s] %(message)s'))
-logger.addHandler(handler)
+
+# Optional: prevent duplicate handlers
+if not logger.handlers:
+    handler = logging.StreamHandler()
+    handler.setFormatter(logging.Formatter('%(asctime)s [%(levelname)s] %(message)s'))
+    logger.addHandler(handler)
 
 logger.info("✅ DEBUG: elimu_backend/urls.py loaded successfully")
 
@@ -30,7 +31,7 @@ def api_root(request):
         }
     })
 
-# ✅ Main URL patterns with error handling
+# ✅ Main URL patterns with debug logs
 urlpatterns = []
 
 try:
@@ -52,17 +53,19 @@ try:
     urlpatterns.append(path('api/payment/', include('payments.urls')))
     logger.debug("🔗 Registered route: /api/payment/")
 
-    # 🔐 JWT Authentication
+    # 🔐 JWT Authentication Routes
     urlpatterns.append(path('api/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'))
-    urlpatterns.append(path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'))
-    logger.debug("🔐 Registered JWT routes.")
+    logger.debug("🔗 Registered route: /api/token/")
 
-    # 🎯 Root endpoint
+    urlpatterns.append(path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'))
+    logger.debug("🔗 Registered route: /api/token/refresh/")
+
+    # 🎯 Root API Info Endpoint
     urlpatterns.insert(0, path('', api_root, name='api-root'))
     logger.debug("🔗 Registered route: /")
 
 except Exception as e:
-    logger.error(f"❌ Error loading urlpatterns: {e}")
+    logger.error("❌ Error loading urlpatterns: %s", str(e))
 
 # ✅ Final confirmation
 logger.info("✅ All urlpatterns loaded successfully for Elimu-Online backend.")

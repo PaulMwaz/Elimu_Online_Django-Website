@@ -63,7 +63,7 @@ def register_user(request):
     except Exception as e:
         logger.error("🔥 Error creating user: %s", str(e))
         return Response(
-            {"message": "Registration failed."},
+            {"message": "Registration failed due to a server error."},
             status=status.HTTP_500_INTERNAL_SERVER_ERROR
         )
 
@@ -96,7 +96,7 @@ class LoginView(APIView):
         try:
             user = User.objects.get(email=email)
         except User.DoesNotExist:
-            logger.warning("❌ Login failed - email not found: %s", email)
+            logger.warning("❌ Login failed - user with email not found: %s", email)
             return Response(
                 {"message": "Invalid credentials."},
                 status=status.HTTP_401_UNAUTHORIZED

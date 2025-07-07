@@ -4,22 +4,24 @@ from .views import UserListView, register_user, LoginView
 import logging
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
+
 logger.info("✅ DEBUG: users/urls.py loaded successfully.")
 
 urlpatterns = [
-    # 🔐 Admin-only list of users
+    # 🔐 Admin-only: list all users
     path('', UserListView.as_view(), name='user-list'),
 
-    # ✅ Public registration route
+    # ✅ Public: User registration endpoint
     path('register/', register_user, name='user-register'),
 
-    # 🌐 Optional legacy route (backward-compatible)
-    path('auth/register/', register_user),
+    # 🌐 Optional: Legacy/alternative registration path (backward-compatible)
+    path('auth/register/', register_user, name='legacy-register'),
 
-    # 🔐 Login view
+    # 🔐 Public: Login endpoint using JWT
     path('auth/login/', LoginView.as_view(), name='user-login'),
 ]
 
-# ✅ Log all registered user endpoints
-for route in urlpatterns:
-    logger.debug("🔗 Registered user URL: /api/users/%s → %s", route.pattern, route.callback)
+# ✅ Log all registered user routes (only in DEBUG mode)
+if logger.isEnabledFor(logging.DEBUG):
+    for route in urlpatterns:
+        logger.debug("🔗 Registered user URL: /api/users/%s → %s", route.pattern, route.callback)

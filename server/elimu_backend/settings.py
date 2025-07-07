@@ -25,11 +25,14 @@ LOGGING = {
     },
 }
 logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
+
 logger.info("✅ settings.py loaded successfully")
 
 # ✅ Security settings
 SECRET_KEY = os.getenv('SECRET_KEY', 'fallback-secret-key')
 DEBUG = os.getenv('DEBUG', 'True') == 'True'
+logger.debug(f"✅ DEBUG Mode: {DEBUG}")
 ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', 'localhost,127.0.0.1').split(',') + [
     'elimu-backend-59739536402.europe-west1.run.app',
 ]
@@ -156,10 +159,10 @@ logger.debug("✅ JWT settings applied.")
 
 # ✅ CORS Configuration
 CORS_ALLOWED_ORIGINS = [
-    "https://elimu-online.onrender.com",
+    "https://elimu-online.onrender.com",  # ✅ Frontend domain
 ]
 CORS_ALLOWED_ORIGIN_REGEXES = [
-    r"^https://.*\.onrender\.com$",
+    r"^https://.*\.onrender\.com$",  # Support wildcard if needed
 ]
 CORS_ALLOW_CREDENTIALS = True
 CORS_ALLOW_HEADERS = list(default_headers) + [
@@ -167,7 +170,14 @@ CORS_ALLOW_HEADERS = list(default_headers) + [
     "access-control-allow-credentials",
 ]
 CORS_ALLOW_METHODS = list(default_methods)
-logger.debug(f"✅ CORS config complete with origins: {CORS_ALLOWED_ORIGINS}")
+
+# Optional for debugging: Allow everything (DO NOT USE in production)
+# CORS_ALLOW_ALL_ORIGINS = True
+
+logger.debug("✅ CORS configuration complete:")
+logger.debug(f"   Origins: {CORS_ALLOWED_ORIGINS}")
+logger.debug(f"   Headers: {CORS_ALLOW_HEADERS}")
+logger.debug(f"   Methods: {CORS_ALLOW_METHODS}")
 
 # ✅ Jazzmin admin theme
 JAZZMIN_SETTINGS = {
@@ -196,7 +206,11 @@ MPESA_CONSUMER_KEY = os.getenv("MPESA_CONSUMER_KEY")
 MPESA_CONSUMER_SECRET = os.getenv("MPESA_CONSUMER_SECRET")
 MPESA_PASSKEY = os.getenv("MPESA_PASSKEY")
 MPESA_CALLBACK_URL = os.getenv("MPESA_CALLBACK_URL")
+
 logger.debug("✅ M-Pesa credentials loaded.")
+logger.debug(f"   MPESA_ENV: {MPESA_ENV}")
+logger.debug(f"   SHORTCODE: {MPESA_SHORTCODE}")
+logger.debug(f"   CALLBACK: {MPESA_CALLBACK_URL}")
 
 # ✅ Default Auto Field
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
