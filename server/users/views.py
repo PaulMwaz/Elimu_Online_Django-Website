@@ -12,7 +12,6 @@ import logging
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
-
 # 🔐 Admin-only: View all users
 class UserListView(generics.ListAPIView):
     queryset = User.objects.all().order_by('-date_joined')
@@ -24,12 +23,16 @@ class UserListView(generics.ListAPIView):
         return super().get_queryset()
 
 
-# ✅ Public: Register a new user
-@api_view(['POST'])
+# ✅ Public: Register a new user (POST + CORS OPTIONS)
+@api_view(['POST', 'OPTIONS'])
 @permission_classes([AllowAny])
 def register_user(request):
+    if request.method == "OPTIONS":
+        logger.debug("🔁 CORS Preflight OPTIONS request received at /users/register/")
+        return Response(status=status.HTTP_200_OK)
+
+    logger.debug("📥 Registration data received: %s", request.data)
     data = request.data
-    logger.debug("📥 Registration data received: %s", data)
 
     email = data.get("email")
     password = data.get("password")
@@ -49,13 +52,20 @@ def register_user(request):
             status=status.HTTP_400_BAD_REQUEST
         )
 
-    user = User.objects.create_user(
-        username=email,
-        email=email,
-        password=password,
-        first_name=name
-    )
-    logger.info("✅ User registered successfully: %s", user.username)
+    try:
+        user = User.objects.create_user(
+            username=email,
+            email=email,
+            password=password,
+            first_name=name
+        )
+        logger.info("✅ User registered successfully: %s", user.username)
+    except Exception as e:
+        logger.error("🔥 Error creating user: %s", str(e))
+        return Response(
+            {"message": "Registration failed."},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
 
     serializer = UserSerializer(user)
     return Response(
@@ -74,7 +84,14 @@ class LoginView(APIView):
     def post(self, request):
         email = request.data.get("email")
         password = request.data.get("password")
-        logger.debug("🔐 Login attempt for: %s", email)
+        logger.debug("🔐 Login attempt for email: %s", email)
+
+        if not email or not password:
+            logger.warning("❌ Missing email or password during login.")
+            return Response(
+                {"message": "Email and password are required."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
 
         try:
             user = User.objects.get(email=email)
