@@ -4,20 +4,21 @@
 const BASE_URL =
   window.location.hostname === "localhost"
     ? "http://127.0.0.1:8000/api"
-    : "https://elimu-online-backend.onrender.com/api"; // ✅ Update to your Render backend domain
+    : "https://elimu-backend-59739536402.europe-west1.run.app/api"; // ✅ Updated to your Google Cloud backend
 
 console.log("🌍 API Base URL:", BASE_URL);
 
 // ✅ Universal fetch wrapper with debug logs and error handling
 async function fetchJSON(url, options = {}) {
-  console.log("📡 Fetching:", url, options);
+  console.log("📡 [fetchJSON] Requesting:", url);
+  console.log("📨 [fetchJSON] Options:", options);
 
   const response = await fetch(url, {
     headers: {
       "Content-Type": "application/json",
       ...options.headers,
     },
-    credentials: "include", // ✅ Ensure cookies/tokens are sent
+    credentials: "include", // ✅ Send cookies/tokens
     ...options,
   });
 
@@ -25,18 +26,18 @@ async function fetchJSON(url, options = {}) {
     const error = await response.json().catch(() => ({
       message: response.statusText,
     }));
-    console.error("❌ API Error:", error.message, response.status);
+    console.error("❌ [fetchJSON] API Error:", response.status, error.message);
     throw new Error(error.message || "Request failed");
   }
 
   const data = await response.json();
-  console.log("✅ API Success:", url, data);
+  console.log("✅ [fetchJSON] Response OK:", data);
   return data;
 }
 
 // ✅ User Registration
 export async function registerUser(name, email, password) {
-  console.log("📝 Registering user:", { name, email });
+  console.log("📝 [registerUser] Registering:", { name, email });
 
   return await fetchJSON(`${BASE_URL}/users/register/`, {
     method: "POST",
@@ -46,7 +47,7 @@ export async function registerUser(name, email, password) {
 
 // ✅ User Login
 export async function loginUser(email, password) {
-  console.log("🔐 Logging in:", email);
+  console.log("🔐 [loginUser] Logging in:", email);
 
   return await fetchJSON(`${BASE_URL}/users/login/`, {
     method: "POST",
@@ -56,23 +57,23 @@ export async function loginUser(email, password) {
 
 // ✅ Fetch Public Resources
 export async function fetchResources() {
-  console.log("📥 Fetching resources...");
+  console.log("📥 [fetchResources] Fetching resources...");
   return await fetchJSON(`${BASE_URL}/resources/`);
 }
 
-// ✅ Get File URL (from GCS or full URL)
+// ✅ Get Full File URL
 export function getFileUrl(filePath) {
   const url = filePath.startsWith("http")
     ? filePath
     : `https://storage.googleapis.com/elimu-online-resources-2025/${filePath}`;
-  console.log("🔗 File URL:", url);
+  console.log("🔗 [getFileUrl] Resolved URL:", url);
   return url;
 }
 
-// ✅ Trigger Browser File Download
+// ✅ Trigger File Download
 export function downloadFile(filePath) {
   const url = getFileUrl(filePath);
-  console.log("⬇️ Downloading file:", url);
+  console.log("⬇️ [downloadFile] Starting download:", url);
 
   const link = document.createElement("a");
   link.href = url;
@@ -82,9 +83,9 @@ export function downloadFile(filePath) {
   document.body.removeChild(link);
 }
 
-// ✅ Delete a Resource (Admin only)
+// ✅ Delete Resource (Admin)
 export async function deleteResource(resourceId, token) {
-  console.log("🗑️ Deleting resource:", resourceId);
+  console.log("🗑️ [deleteResource] Deleting:", resourceId);
 
   return await fetchJSON(`${BASE_URL}/resources/${resourceId}/`, {
     method: "DELETE",
@@ -94,9 +95,9 @@ export async function deleteResource(resourceId, token) {
   });
 }
 
-// ✅ Upload New Resource (Admin only)
+// ✅ Upload Resource (Admin)
 export async function uploadResource(formData, token) {
-  console.log("📤 Uploading resource...");
+  console.log("📤 [uploadResource] Uploading new file...");
 
   const response = await fetch(`${BASE_URL}/resources/`, {
     method: "POST",
@@ -110,18 +111,18 @@ export async function uploadResource(formData, token) {
     const error = await response.json().catch(() => ({
       message: response.statusText,
     }));
-    console.error("❌ Upload Error:", error.message);
+    console.error("❌ [uploadResource] Upload error:", error.message);
     throw new Error(error.message || "Upload failed");
   }
 
   const data = await response.json();
-  console.log("✅ Upload successful:", data);
+  console.log("✅ [uploadResource] Upload successful:", data);
   return data;
 }
 
-// ✅ Check If User Paid for File
+// ✅ Check Payment Status for File
 export async function checkIfPaid(fileId) {
-  console.log("🔐 Checking payment for file ID:", fileId);
+  console.log("🔐 [checkIfPaid] Checking payment for:", fileId);
 
   const result = await fetchJSON(
     `${BASE_URL}/resources/${fileId}/is-paid-for`,
@@ -133,9 +134,9 @@ export async function checkIfPaid(fileId) {
   return result.is_paid;
 }
 
-// ✅ M-Pesa Initiation
+// ✅ Initiate M-Pesa Payment
 export async function initiateMpesa(phone, amount) {
-  console.log("📲 Initiating M-Pesa:", { phone, amount });
+  console.log("📲 [initiateMpesa] Initiating:", { phone, amount });
 
   const res = await fetch(`${BASE_URL}/payment/initiate/`, {
     method: "POST",
@@ -149,11 +150,11 @@ export async function initiateMpesa(phone, amount) {
     const error = await res.json().catch(() => ({
       message: res.statusText,
     }));
-    console.error("❌ M-Pesa Error:", error.message);
+    console.error("❌ [initiateMpesa] Failed:", error.message);
     throw new Error(error.message || "Payment failed");
   }
 
   const result = await res.json();
-  console.log("✅ M-Pesa Initiated:", result);
+  console.log("✅ [initiateMpesa] Success:", result);
   return result;
 }

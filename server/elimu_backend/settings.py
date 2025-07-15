@@ -1,3 +1,5 @@
+# settings.py
+
 import os
 import logging
 from pathlib import Path
@@ -5,6 +7,7 @@ from datetime import timedelta
 from dotenv import load_dotenv
 from google.oauth2 import service_account
 from corsheaders.defaults import default_headers, default_methods
+import dj_database_url
 
 # ✅ Load environment variables
 load_dotenv()
@@ -26,13 +29,14 @@ LOGGING = {
 }
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
-
 logger.info("✅ settings.py loaded successfully")
 
-# ✅ Security settings
+# ✅ Secret Key and Debug Mode
 SECRET_KEY = os.getenv('SECRET_KEY', 'fallback-secret-key')
 DEBUG = os.getenv('DEBUG', 'True') == 'True'
 logger.debug(f"✅ DEBUG Mode: {DEBUG}")
+
+# ✅ Allowed Hosts
 ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', 'localhost,127.0.0.1').split(',') + [
     'elimu-backend-59739536402.europe-west1.run.app',
 ]
@@ -47,23 +51,23 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-
-    # 3rd-party
     'rest_framework',
     'rest_framework_simplejwt',
     'corsheaders',
     'storages',
-
-    # Local apps
     'resources',
     'users',
     'payments',
     'dashboard',
 ]
 
-# ✅ Middleware (CORS FIRST)
+# ✅ Custom User Model
+AUTH_USER_MODEL = 'users.CustomUser'
+logger.debug("✅ Custom user model 'users.CustomUser' set as AUTH_USER_MODEL.")
+
+# ✅ Middleware
 MIDDLEWARE = [
-    'corsheaders.middleware.CorsMiddleware',  # 🔥 MUST be first
+    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -72,7 +76,7 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
 ]
 
-# ✅ URLs and WSGI
+# ✅ Root URL and WSGI
 ROOT_URLCONF = 'elimu_backend.urls'
 WSGI_APPLICATION = 'elimu_backend.wsgi.application'
 
@@ -93,30 +97,36 @@ TEMPLATES = [
     },
 ]
 
-# ✅ Database
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': os.getenv('DB_NAME'),
-        'USER': os.getenv('DB_USER'),
-        'PASSWORD': os.getenv('DB_PASSWORD'),
-        'HOST': os.getenv('DB_HOST'),
-        'PORT': os.getenv('DB_PORT', '5432'),
+# ✅ Database config: Render or Local
+IS_RENDER = os.getenv("RENDER", "False") == "True"
+if IS_RENDER:
+    logger.debug("✅ Using Render production database")
+    DATABASES = {
+        'default': dj_database_url.config(conn_max_age=600, ssl_require=True)
     }
-}
-logger.debug("✅ Database config loaded.")
+else:
+    logger.debug("✅ Using Local PostgreSQL")
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.postgresql',
+            'NAME': os.getenv('LOCAL_DB_NAME', 'elimu_db'),
+            'USER': os.getenv('LOCAL_DB_USER', 'elimu_user'),
+            'PASSWORD': os.getenv('LOCAL_DB_PASSWORD', '1234567'),
+            'HOST': os.getenv('LOCAL_DB_HOST', 'localhost'),
+            'PORT': os.getenv('LOCAL_DB_PORT', '5432'),
+        }
+    }
 
-# ✅ Password validation
-AUTH_PASSWORD_VALIDATORS = []
+logger.debug(f"✅ DATABASE config: {DATABASES['default']}")
 
-# ✅ Localization
+# ✅ Timezone and Language
 LANGUAGE_CODE = 'en-us'
 TIME_ZONE = 'Africa/Nairobi'
 USE_I18N = True
 USE_L10N = True
 USE_TZ = True
 
-# ✅ Static & media files
+# ✅ Static and Media Files
 STATIC_URL = '/static/'
 STATICFILES_DIRS = [BASE_DIR / 'static']
 STATIC_ROOT = BASE_DIR / 'staticfiles'
@@ -133,12 +143,12 @@ if gcs_path and os.path.exists(gcs_path):
     logger.debug("✅ Google Cloud credentials loaded successfully.")
 else:
     GS_CREDENTIALS = None
-    logger.warning("❌ Google Cloud credentials file not found.")
+    logger.warning("❌ Google Cloud credentials file not found. Uploads may fail.")
 
 DEFAULT_FILE_STORAGE = 'storages.backends.gcloud.GoogleCloudStorage'
-MEDIA_URL = f"https://storage.googleapis.com/{GS_BUCKET_NAME}/"
+GCS_MEDIA_URL = f"https://storage.googleapis.com/{GS_BUCKET_NAME}/"
 
-# ✅ Django REST Framework
+# ✅ REST Framework
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
         'rest_framework_simplejwt.authentication.JWTAuthentication',
@@ -149,7 +159,7 @@ REST_FRAMEWORK = {
 }
 logger.debug("✅ REST Framework loaded.")
 
-# ✅ JWT Configuration
+# ✅ JWT Authentication
 SIMPLE_JWT = {
     'ACCESS_TOKEN_LIFETIME': timedelta(days=1),
     'REFRESH_TOKEN_LIFETIME': timedelta(days=7),
@@ -157,12 +167,14 @@ SIMPLE_JWT = {
 }
 logger.debug("✅ JWT settings applied.")
 
-# ✅ CORS Configuration
+# ✅ CORS Settings
 CORS_ALLOWED_ORIGINS = [
-    "https://elimu-online.onrender.com",  # ✅ Frontend domain
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+    "https://elimu-online.onrender.com",
 ]
 CORS_ALLOWED_ORIGIN_REGEXES = [
-    r"^https://.*\.onrender\.com$",  # Support wildcard if needed
+    r"^https://.*\.onrender\.com$",
 ]
 CORS_ALLOW_CREDENTIALS = True
 CORS_ALLOW_HEADERS = list(default_headers) + [
@@ -170,16 +182,9 @@ CORS_ALLOW_HEADERS = list(default_headers) + [
     "access-control-allow-credentials",
 ]
 CORS_ALLOW_METHODS = list(default_methods)
+logger.debug("✅ CORS configuration complete.")
 
-# Optional for debugging: Allow everything (DO NOT USE in production)
-# CORS_ALLOW_ALL_ORIGINS = True
-
-logger.debug("✅ CORS configuration complete:")
-logger.debug(f"   Origins: {CORS_ALLOWED_ORIGINS}")
-logger.debug(f"   Headers: {CORS_ALLOW_HEADERS}")
-logger.debug(f"   Methods: {CORS_ALLOW_METHODS}")
-
-# ✅ Jazzmin admin theme
+# ✅ Jazzmin Admin Customization
 JAZZMIN_SETTINGS = {
     "site_title": "Elimu-Online Admin",
     "site_header": "Elimu-Online Dashboard",
@@ -199,21 +204,18 @@ JAZZMIN_SETTINGS = {
 }
 logger.debug("✅ Jazzmin settings loaded.")
 
-# ✅ M-Pesa configuration
+# ✅ M-Pesa Daraja Config
 MPESA_ENV = os.getenv("MPESA_ENV", "sandbox")
 MPESA_SHORTCODE = os.getenv("MPESA_SHORTCODE")
 MPESA_CONSUMER_KEY = os.getenv("MPESA_CONSUMER_KEY")
 MPESA_CONSUMER_SECRET = os.getenv("MPESA_CONSUMER_SECRET")
 MPESA_PASSKEY = os.getenv("MPESA_PASSKEY")
 MPESA_CALLBACK_URL = os.getenv("MPESA_CALLBACK_URL")
-
 logger.debug("✅ M-Pesa credentials loaded.")
-logger.debug(f"   MPESA_ENV: {MPESA_ENV}")
-logger.debug(f"   SHORTCODE: {MPESA_SHORTCODE}")
-logger.debug(f"   CALLBACK: {MPESA_CALLBACK_URL}")
 
-# ✅ Default Auto Field
+# ✅ Auto Field
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 logger.debug("✅ Default auto field set.")
 
+# ✅ Final Load Log
 logger.debug("✅ All settings loaded and ready.")
