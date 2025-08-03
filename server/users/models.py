@@ -13,11 +13,14 @@ logger.setLevel(logging.DEBUG)
 class CustomUserManager(BaseUserManager):
     def create_user(self, email, password=None, full_name=None, **extra_fields):
         if not email:
+            logger.error("❌ Attempted to create user without email.")
             raise ValueError("Users must have an email address")
+
         email = self.normalize_email(email)
         user = self.model(email=email, full_name=full_name, **extra_fields)
         user.set_password(password)
         user.save(using=self._db)
+
         logger.info("✅ User created: %s", email)
         return user
 
@@ -26,8 +29,10 @@ class CustomUserManager(BaseUserManager):
         extra_fields.setdefault('is_superuser', True)
 
         if not extra_fields.get("is_staff"):
+            logger.error("❌ Superuser creation failed: is_staff not True")
             raise ValueError("Superuser must have is_staff=True.")
         if not extra_fields.get("is_superuser"):
+            logger.error("❌ Superuser creation failed: is_superuser not True")
             raise ValueError("Superuser must have is_superuser=True.")
 
         logger.info("👑 Creating superuser: %s", email)
@@ -45,8 +50,9 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
 
     objects = CustomUserManager()
 
-    USERNAME_FIELD = 'email'  # ✅ Login via email
+    USERNAME_FIELD = 'email'                 # ✅ Login via email
     REQUIRED_FIELDS = ['full_name']
+    EMAIL_FIELD = 'email'                    # ✅ Used by JWT for authentication
 
     def __str__(self):
         return self.email
@@ -56,7 +62,7 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
         verbose_name_plural = "Users"
 
 # ===============================
-# ✅ Profile Model (referencing custom user safely)
+# ✅ Profile Model
 # ===============================
 class Profile(models.Model):
     user = models.OneToOneField('users.CustomUser', on_delete=models.CASCADE)

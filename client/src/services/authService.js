@@ -49,13 +49,14 @@ export function getAuthHeaders() {
   return headers;
 }
 
-// ✅ Login user via JWT
+// ✅ Login user via Django JWT LoginView
 export async function login(email, password) {
   console.log("🚀 Attempting login with:", email);
-  const res = await fetch(`${BASE_URL}/token/`, {
+
+  const res = await fetch(`${BASE_URL}/users/auth/login/`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ username: email, password }),
+    body: JSON.stringify({ email, password }), // ✅ CORRECT KEY
   });
 
   if (!res.ok) {
@@ -66,28 +67,12 @@ export async function login(email, password) {
 
   const data = await res.json();
   console.log("✅ JWT tokens received:", data);
-  saveAuthData(data.access, data.refresh);
 
-  const user = await fetchProfile(data.access);
-  localStorage.setItem("auth_user", JSON.stringify(user));
-  console.log("👤 Logged-in user profile:", user);
+  saveAuthData(data.token, data.refresh);
+  localStorage.setItem("auth_user", JSON.stringify(data.user));
+  console.log("👤 Logged-in user profile saved to localStorage:", data.user);
 
-  return { token: data.access, user };
-}
-
-// ✅ Fetch user profile (protected endpoint)
-async function fetchProfile(token) {
-  console.log("📡 Fetching user profile with token...");
-  const res = await fetch(`${BASE_URL}/users/me/`, {
-    headers: { Authorization: `Bearer ${token}` },
-  });
-
-  if (!res.ok) {
-    console.warn("⚠️ Failed to fetch profile. Using fallback.");
-    return { name: "User", email: "unknown" };
-  }
-
-  return await res.json();
+  return { token: data.token, user: data.user };
 }
 
 // ✅ Return current user from localStorage

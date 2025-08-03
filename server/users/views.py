@@ -8,10 +8,11 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from django.contrib.auth import authenticate, get_user_model
 from .serializers import UserSerializer
 
+# ✅ Logger setup
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
-User = get_user_model()  # ✅ Use custom user model
+User = get_user_model()  # ✅ Custom user model
 
 # ========================================
 # 🔐 Admin-only: View all registered users
@@ -61,14 +62,13 @@ def register_user(request):
         )
 
     try:
-        # ✅ Create user (assuming email is the USERNAME_FIELD)
         user = User.objects.create_user(
             email=email,
             password=password,
             full_name=full_name
         )
         logger.info("✅ New user registered: %s", user.email)
-    except Exception as e:
+    except Exception:
         logger.exception("🔥 Exception while creating user:")
         return Response(
             {"message": "Registration failed due to a server error."},
@@ -85,7 +85,7 @@ def register_user(request):
     )
 
 # ========================================
-# ✅ Public: Login with JWT
+# ✅ Public: Login with JWT using email
 # ========================================
 class LoginView(APIView):
     permission_classes = [AllowAny]
@@ -93,7 +93,7 @@ class LoginView(APIView):
     def post(self, request):
         email = request.data.get("email")
         password = request.data.get("password")
-        logger.debug("🔐 Login attempt: %s", email)
+        logger.debug("🔐 Login attempt → Email: %s", email)
 
         if not email or not password:
             logger.warning("❌ Login failed: Missing email or password.")
@@ -102,33 +102,25 @@ class LoginView(APIView):
                 status=status.HTTP_400_BAD_REQUEST
             )
 
-        try:
-            user = User.objects.get(email=email)
-        except User.DoesNotExist:
-            logger.warning("❌ Login failed: User not found: %s", email)
+        # ✅ Email-based authentication
+        user = authenticate(request, username=email, password=password)
+
+        if user is None:
+            logger.warning("❌ Login failed: Invalid credentials for email: %s", email)
             return Response(
                 {"message": "Invalid credentials."},
                 status=status.HTTP_401_UNAUTHORIZED
             )
 
-        # Authenticate using email as username
-        user = authenticate(request, username=user.email, password=password)
+        refresh = RefreshToken.for_user(user)
+        logger.info("✅ Login successful: %s", email)
 
-        if user:
-            refresh = RefreshToken.for_user(user)
-            logger.info("✅ Login successful: %s", email)
-            return Response({
-                "token": str(refresh.access_token),
-                "refresh": str(refresh),
-                "user": {
-                    "id": user.id,
-                    "name": user.full_name,  # customize as needed
-                    "email": user.email,
-                },
-            })
-
-        logger.warning("❌ Login failed: Incorrect password for %s", email)
-        return Response(
-            {"message": "Invalid credentials."},
-            status=status.HTTP_401_UNAUTHORIZED
-        )
+        return Response({
+            "access": str(refresh.access_token),
+            "refresh": str(refresh),
+            "user": {
+                "id": user.id,
+                "name": user.full_name,
+                "email": user.email,
+            },
+        }, status=status.HTTP_200_OK)
