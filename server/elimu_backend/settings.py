@@ -67,7 +67,7 @@ logger.debug("✅ Custom user model 'users.CustomUser' set as AUTH_USER_MODEL.")
 
 # ✅ Middleware
 MIDDLEWARE = [
-    'corsheaders.middleware.CorsMiddleware',
+    'corsheaders.middleware.CorsMiddleware',  # Must be first
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -116,7 +116,6 @@ else:
             'PORT': os.getenv('LOCAL_DB_PORT', '5432'),
         }
     }
-
 logger.debug(f"✅ DATABASE config: {DATABASES['default']}")
 
 # ✅ Timezone and Language
@@ -171,10 +170,10 @@ logger.debug("✅ JWT settings applied.")
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:5173",
     "http://127.0.0.1:5173",
-    "https://elimu-online.onrender.com",
+    "https://elimu-online.onrender.com",  # Your frontend domain
 ]
 CORS_ALLOWED_ORIGIN_REGEXES = [
-    r"^https://.*\.onrender\.com$",
+    r"^https://.*\.onrender\.com$",       # Optional wildcard for subdomains
 ]
 CORS_ALLOW_CREDENTIALS = True
 CORS_ALLOW_HEADERS = list(default_headers) + [
@@ -217,5 +216,5 @@ logger.debug("✅ M-Pesa credentials loaded.")
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 logger.debug("✅ Default auto field set.")
 
-# ✅ Final Load Log
-logger.debug("✅ All settings loaded and ready.")
+# ✅ Final confirmation
+logger.debug("✅ All settings loaded successfully.")
