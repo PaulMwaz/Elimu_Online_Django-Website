@@ -1,5 +1,3 @@
-# settings.py
-
 import os
 import logging
 from pathlib import Path
@@ -9,7 +7,7 @@ from google.oauth2 import service_account
 from corsheaders.defaults import default_headers, default_methods
 import dj_database_url
 
-# ✅ Load environment variables
+# ✅ Load .env variables
 load_dotenv()
 
 # ✅ Base directory
@@ -31,7 +29,7 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 logger.info("✅ settings.py loaded successfully")
 
-# ✅ Secret Key and Debug Mode
+# ✅ Secret Key and Debug
 SECRET_KEY = os.getenv('SECRET_KEY', 'fallback-secret-key')
 DEBUG = os.getenv('DEBUG', 'True') == 'True'
 logger.debug(f"✅ DEBUG Mode: {DEBUG}")
@@ -39,6 +37,7 @@ logger.debug(f"✅ DEBUG Mode: {DEBUG}")
 # ✅ Allowed Hosts
 ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', 'localhost,127.0.0.1').split(',') + [
     'elimu-backend-59739536402.europe-west1.run.app',
+    'elimu-online.onrender.com',
 ]
 logger.debug(f"✅ Allowed Hosts: {ALLOWED_HOSTS}")
 
@@ -61,13 +60,13 @@ INSTALLED_APPS = [
     'dashboard',
 ]
 
-# ✅ Custom User Model
+# ✅ Custom User model
 AUTH_USER_MODEL = 'users.CustomUser'
-logger.debug("✅ Custom user model 'users.CustomUser' set as AUTH_USER_MODEL.")
+logger.debug("✅ Custom user model 'users.CustomUser' set.")
 
-# ✅ Middleware
+# ✅ Middleware (Cors MUST be first)
 MIDDLEWARE = [
-    'corsheaders.middleware.CorsMiddleware',  # Must be first
+    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -76,7 +75,7 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
 ]
 
-# ✅ Root URL and WSGI
+# ✅ URLs & WSGI
 ROOT_URLCONF = 'elimu_backend.urls'
 WSGI_APPLICATION = 'elimu_backend.wsgi.application'
 
@@ -97,7 +96,7 @@ TEMPLATES = [
     },
 ]
 
-# ✅ Database config: Render or Local
+# ✅ Database
 IS_RENDER = os.getenv("RENDER", "False") == "True"
 if IS_RENDER:
     logger.debug("✅ Using Render production database")
@@ -116,16 +115,17 @@ else:
             'PORT': os.getenv('LOCAL_DB_PORT', '5432'),
         }
     }
+
 logger.debug(f"✅ DATABASE config: {DATABASES['default']}")
 
-# ✅ Timezone and Language
+# ✅ Time and Language
 LANGUAGE_CODE = 'en-us'
 TIME_ZONE = 'Africa/Nairobi'
 USE_I18N = True
 USE_L10N = True
 USE_TZ = True
 
-# ✅ Static and Media Files
+# ✅ Static / Media
 STATIC_URL = '/static/'
 STATICFILES_DIRS = [BASE_DIR / 'static']
 STATIC_ROOT = BASE_DIR / 'staticfiles'
@@ -139,15 +139,15 @@ gcs_path = os.getenv("GOOGLE_APPLICATION_CREDENTIALS")
 
 if gcs_path and os.path.exists(gcs_path):
     GS_CREDENTIALS = service_account.Credentials.from_service_account_file(gcs_path)
-    logger.debug("✅ Google Cloud credentials loaded successfully.")
+    logger.debug("✅ Google Cloud credentials loaded.")
 else:
     GS_CREDENTIALS = None
-    logger.warning("❌ Google Cloud credentials file not found. Uploads may fail.")
+    logger.warning("❌ Google Cloud credentials not found.")
 
 DEFAULT_FILE_STORAGE = 'storages.backends.gcloud.GoogleCloudStorage'
 GCS_MEDIA_URL = f"https://storage.googleapis.com/{GS_BUCKET_NAME}/"
 
-# ✅ REST Framework
+# ✅ REST Framework + JWT
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
         'rest_framework_simplejwt.authentication.JWTAuthentication',
@@ -156,34 +156,35 @@ REST_FRAMEWORK = {
         'rest_framework.permissions.AllowAny',
     ],
 }
-logger.debug("✅ REST Framework loaded.")
+logger.debug("✅ REST Framework and JWT settings loaded.")
 
-# ✅ JWT Authentication
 SIMPLE_JWT = {
     'ACCESS_TOKEN_LIFETIME': timedelta(days=1),
     'REFRESH_TOKEN_LIFETIME': timedelta(days=7),
     'AUTH_HEADER_TYPES': ('Bearer',),
 }
-logger.debug("✅ JWT settings applied.")
+logger.debug("✅ JWT configuration complete.")
 
-# ✅ CORS Settings
+# ✅ CORS + CSRF
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:5173",
     "http://127.0.0.1:5173",
-    "https://elimu-online.onrender.com",  # Your frontend domain
+    "https://elimu-online.onrender.com",
 ]
 CORS_ALLOWED_ORIGIN_REGEXES = [
-    r"^https://.*\.onrender\.com$",       # Optional wildcard for subdomains
+    r"^https://.*\.onrender\.com$",
 ]
 CORS_ALLOW_CREDENTIALS = True
-CORS_ALLOW_HEADERS = list(default_headers) + [
-    "access-control-allow-origin",
-    "access-control-allow-credentials",
-]
+CORS_ALLOW_HEADERS = list(default_headers)
 CORS_ALLOW_METHODS = list(default_methods)
-logger.debug("✅ CORS configuration complete.")
 
-# ✅ Jazzmin Admin Customization
+CSRF_TRUSTED_ORIGINS = [
+    "https://elimu-online.onrender.com",
+]
+
+logger.debug("✅ CORS and CSRF settings applied.")
+
+# ✅ Jazzmin Admin UI
 JAZZMIN_SETTINGS = {
     "site_title": "Elimu-Online Admin",
     "site_header": "Elimu-Online Dashboard",
@@ -201,9 +202,9 @@ JAZZMIN_SETTINGS = {
     "default_icon_parents": "fas fa-chevron-circle-right",
     "default_icon_children": "fas fa-circle",
 }
-logger.debug("✅ Jazzmin settings loaded.")
+logger.debug("✅ Jazzmin configuration loaded.")
 
-# ✅ M-Pesa Daraja Config
+# ✅ M-Pesa Credentials
 MPESA_ENV = os.getenv("MPESA_ENV", "sandbox")
 MPESA_SHORTCODE = os.getenv("MPESA_SHORTCODE")
 MPESA_CONSUMER_KEY = os.getenv("MPESA_CONSUMER_KEY")
@@ -212,9 +213,9 @@ MPESA_PASSKEY = os.getenv("MPESA_PASSKEY")
 MPESA_CALLBACK_URL = os.getenv("MPESA_CALLBACK_URL")
 logger.debug("✅ M-Pesa credentials loaded.")
 
-# ✅ Auto Field
+# ✅ Default Auto Field
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 logger.debug("✅ Default auto field set.")
 
 # ✅ Final confirmation
-logger.debug("✅ All settings loaded successfully.")
+logger.debug("✅ All settings.py config completed successfully.")
