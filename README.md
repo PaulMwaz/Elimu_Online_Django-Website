@@ -18,31 +18,37 @@ Elimu_Online/
 ## ⚙️ Backend Setup (Django + PostgreSQL)
 
 ### 📁 Navigate to the backend folder
+
 ```bash
 cd server
 ```
 
 ### 📦 Install dependencies
+
 ```bash
 pipenv install
 ```
 
 ### 🐍 Activate the virtual environment
+
 ```bash
 pipenv shell
 ```
 
 ### 🔧 Set the Django settings module
+
 ```bash
 $env:DJANGO_SETTINGS_MODULE="elimu_backend.settings"
 ```
 
 ### 🔄 Apply migrations
+
 ```bash
 python manage.py migrate
 ```
 
 ### ▶️ Run the backend server
+
 ```bash
 python manage.py runserver
 ```
@@ -54,16 +60,19 @@ python manage.py runserver
 ## 🎨 Frontend Setup (Vite + TailwindCSS + JS)
 
 ### 📁 Navigate to the frontend folder
+
 ```bash
 cd client
 ```
 
 ### 📦 Install frontend dependencies
+
 ```bash
 npm install
 ```
 
 ### ▶️ Start the development server
+
 ```bash
 npm run dev
 ```
@@ -117,6 +126,6 @@ GS_BUCKET_NAME=elimu-online-resources-2025
 
 ## 🧑‍💻 Developed By
 
-> Elimu-Online Development Team – 2025
+> Paul – Lead Developer, Elimu-Online Project (2025)
 
----
+## Proudly built to support teachers and students with accessible, high-quality learning resources.
