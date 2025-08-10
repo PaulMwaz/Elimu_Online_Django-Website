@@ -128,4 +128,4 @@ GS_BUCKET_NAME=elimu-online-resources-2025
 
 > Paul – Lead Developer, Elimu-Online Project (2025)
 
-## Proudly built to support teachers and students with accessible, high-quality learning resources.
+Proudly built to support teachers and students with accessible, high-quality learning resources.
