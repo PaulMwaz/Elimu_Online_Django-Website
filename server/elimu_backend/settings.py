@@ -180,10 +180,17 @@ CORS_ALLOWED_ORIGIN_REGEXES = [
 
 CORS_ALLOW_HEADERS = list(default_headers)
 CORS_EXPOSE_HEADERS = ["Content-Type", "X-CSRFToken", "Authorization"]
-CORS_ALLOW_METHODS = list(default_methods)
-
+CORS_ALLOW_METHODS = [
+    "GET",
+    "POST",
+    "PUT",
+    "PATCH",
+    "DELETE",
+    "OPTIONS",  # ✅ Required for preflight requests
+]
 CSRF_TRUSTED_ORIGINS = [
     "https://elimu-online.onrender.com",
+     "https://elimu-backend-59739536402.europe-west1.run.app",
 ]
 
 logger.debug("✅ CORS and CSRF settings applied.")
