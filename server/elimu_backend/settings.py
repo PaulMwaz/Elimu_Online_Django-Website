@@ -166,7 +166,6 @@ logger.debug("✅ JWT configuration complete.")
 
 # ✅ CORS + CSRF
 CORS_ALLOW_ALL_ORIGINS = False
-CORS_ORIGIN_ALLOW_ALL = False
 CORS_ALLOW_CREDENTIALS = True
 
 CORS_ALLOWED_ORIGINS = [
@@ -180,6 +179,7 @@ CORS_ALLOWED_ORIGIN_REGEXES = [
 ]
 
 CORS_ALLOW_HEADERS = list(default_headers)
+CORS_EXPOSE_HEADERS = ["Content-Type", "X-CSRFToken", "Authorization"]
 CORS_ALLOW_METHODS = list(default_methods)
 
 CSRF_TRUSTED_ORIGINS = [
