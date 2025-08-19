@@ -7,7 +7,7 @@ from google.oauth2 import service_account
 from corsheaders.defaults import default_headers, default_methods
 import dj_database_url
 
-# ✅ Load .env variables
+# ✅ Load environment variables
 load_dotenv()
 
 # ✅ Base directory
@@ -64,9 +64,9 @@ INSTALLED_APPS = [
 AUTH_USER_MODEL = 'users.CustomUser'
 logger.debug("✅ Custom user model 'users.CustomUser' set.")
 
-# ✅ Middleware (Cors MUST be first)
+# ✅ Middleware
 MIDDLEWARE = [
-    'corsheaders.middleware.CorsMiddleware',
+    'corsheaders.middleware.CorsMiddleware',  # Must be first
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -75,7 +75,7 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
 ]
 
-# ✅ URLs & WSGI
+# ✅ URL and WSGI
 ROOT_URLCONF = 'elimu_backend.urls'
 WSGI_APPLICATION = 'elimu_backend.wsgi.application'
 
@@ -115,7 +115,6 @@ else:
             'PORT': os.getenv('LOCAL_DB_PORT', '5432'),
         }
     }
-
 logger.debug(f"✅ DATABASE config: {DATABASES['default']}")
 
 # ✅ Time and Language
@@ -125,7 +124,7 @@ USE_I18N = True
 USE_L10N = True
 USE_TZ = True
 
-# ✅ Static / Media
+# ✅ Static and Media files
 STATIC_URL = '/static/'
 STATICFILES_DIRS = [BASE_DIR / 'static']
 STATIC_ROOT = BASE_DIR / 'staticfiles'
@@ -166,15 +165,20 @@ SIMPLE_JWT = {
 logger.debug("✅ JWT configuration complete.")
 
 # ✅ CORS + CSRF
+CORS_ALLOW_ALL_ORIGINS = False
+CORS_ORIGIN_ALLOW_ALL = False
+CORS_ALLOW_CREDENTIALS = True
+
 CORS_ALLOWED_ORIGINS = [
+    "https://elimu-online.onrender.com",
     "http://localhost:5173",
     "http://127.0.0.1:5173",
-    "https://elimu-online.onrender.com",
 ]
+
 CORS_ALLOWED_ORIGIN_REGEXES = [
     r"^https://.*\.onrender\.com$",
 ]
-CORS_ALLOW_CREDENTIALS = True
+
 CORS_ALLOW_HEADERS = list(default_headers)
 CORS_ALLOW_METHODS = list(default_methods)
 
@@ -184,7 +188,7 @@ CSRF_TRUSTED_ORIGINS = [
 
 logger.debug("✅ CORS and CSRF settings applied.")
 
-# ✅ Jazzmin Admin UI
+# ✅ Jazzmin UI
 JAZZMIN_SETTINGS = {
     "site_title": "Elimu-Online Admin",
     "site_header": "Elimu-Online Dashboard",
@@ -213,7 +217,7 @@ MPESA_PASSKEY = os.getenv("MPESA_PASSKEY")
 MPESA_CALLBACK_URL = os.getenv("MPESA_CALLBACK_URL")
 logger.debug("✅ M-Pesa credentials loaded.")
 
-# ✅ Default Auto Field
+# ✅ Auto field
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 logger.debug("✅ Default auto field set.")
 
