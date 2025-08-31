@@ -1,23 +1,56 @@
+// src/pages/Home.js
+// -------------------------------------------------------------
+// Home page: Hero → WhyChoose → HowItWorks → LevelsGrid
+// (FeaturedResourcesSection removed)
+// -------------------------------------------------------------
+
 import { HeroSlider } from "../components/HeroSlider.js";
 import { WhyChooseSection } from "../components/WhyChooseSection.js";
 import { HowItWorksSection } from "../components/HowItWorksSection.js";
-import { FeaturedResourcesSection } from "../components/FeaturedResourcesSection.js"; // ✅ New section
+import { LevelsGrid } from "../components/LevelsGrid.js";
 
 export function Home() {
+  console.log("🏠 [Home] render start");
+
   const section = document.createElement("section");
-  section.className = "bg-gray-50 pt-[80px]"; // ✅ Padding to avoid overlapping navbar
+  section.className = "bg-gray-50 pt-[80px]";
 
-  // ✅ Create homepage sections
-  const slider = HeroSlider();
-  const whyChoose = WhyChooseSection();
-  const howItWorks = HowItWorksSection();
-  const featuredResources = FeaturedResourcesSection(); // ✅ Trending / Paid files
+  // Hero
+  try {
+    console.log("🎬 [Home] mount HeroSlider");
+    const slider = HeroSlider();
+    section.appendChild(slider);
+  } catch (e) {
+    console.error("❌ [Home] HeroSlider failed:", e);
+  }
 
-  // ✅ Append in order
-  section.appendChild(slider);
-  section.appendChild(whyChoose);
-  section.appendChild(howItWorks);
-  section.appendChild(featuredResources); // ✅ Focus on resources
+  // Why Choose Us
+  try {
+    console.log("💡 [Home] mount WhyChooseSection");
+    const whyChoose = WhyChooseSection();
+    section.appendChild(whyChoose);
+  } catch (e) {
+    console.error("❌ [Home] WhyChooseSection failed:", e);
+  }
 
+  // How It Works
+  try {
+    console.log("⚙️  [Home] mount HowItWorksSection");
+    const howItWorks = HowItWorksSection();
+    section.appendChild(howItWorks);
+  } catch (e) {
+    console.error("❌ [Home] HowItWorksSection failed:", e);
+  }
+
+  // 🔥 Levels hub (Lower/Upper Primary, Junior High, High School)
+  try {
+    console.log("🧭 [Home] mount LevelsGrid");
+    const levels = LevelsGrid();
+    section.appendChild(levels);
+  } catch (e) {
+    console.error("❌ [Home] LevelsGrid failed:", e);
+  }
+
+  console.log("✅ [Home] render complete");
   return section;
 }
