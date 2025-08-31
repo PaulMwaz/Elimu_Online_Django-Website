@@ -1,6 +1,7 @@
 # server/elimu_backend/settings.py
 
 import os
+import json
 import logging
 from pathlib import Path
 from datetime import timedelta
@@ -13,7 +14,7 @@ import dj_database_url
 # ===============================
 # Environment & Base Paths
 # ===============================
-load_dotenv()
+load_dotenv()  # loads .env next to manage.py or cwd
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 # ===============================
@@ -22,7 +23,9 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 LOGGING = {
     "version": 1,
     "disable_existing_loggers": False,
-    "handlers": {"console": {"class": "logging.StreamHandler"}},
+    "handlers": {
+        "console": {"class": "logging.StreamHandler"},
+    },
     "root": {"handlers": ["console"], "level": "DEBUG"},
 }
 logger = logging.getLogger(__name__)
@@ -33,8 +36,8 @@ logger.info("✅ settings.py loaded")
 # Core Settings
 # ===============================
 SECRET_KEY = os.getenv("SECRET_KEY", "fallback-secret-key")
-DEBUG = os.getenv("DEBUG", "True") == "True"
-logger.debug(f"DEBUG={DEBUG}")
+DEBUG = os.getenv("DEBUG", "True").strip().lower() == "true"
+logger.debug("DEBUG=%s", DEBUG)
 
 PUBLIC_APP_DOMAIN = os.getenv("PUBLIC_APP_DOMAIN", "elimu-online.onrender.com")
 FRONTEND_ORIGIN = os.getenv("FRONTEND_ORIGIN", f"https://{PUBLIC_APP_DOMAIN}")
@@ -44,12 +47,12 @@ ALLOWED_HOSTS = list(
         [
             "localhost",
             "127.0.0.1",
-            ".onrender.com",
+            ".onrender.com",      # allow Render subdomains
             PUBLIC_APP_DOMAIN,
         ]
     )
 )
-logger.debug(f"ALLOWED_HOSTS={ALLOWED_HOSTS}")
+logger.debug("ALLOWED_HOSTS=%s", ALLOWED_HOSTS)
 
 # ===============================
 # Installed Apps / Auth
@@ -62,10 +65,13 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
+
     "rest_framework",
     "rest_framework_simplejwt",
     "corsheaders",
     "storages",
+
+    # project apps
     "resources",
     "users",
     "payments",
@@ -73,7 +79,7 @@ INSTALLED_APPS = [
 ]
 
 AUTH_USER_MODEL = "users.CustomUser"
-logger.debug("AUTH_USER_MODEL=users.CustomUser")
+logger.debug("AUTH_USER_MODEL=%s", AUTH_USER_MODEL)
 
 # ===============================
 # Middleware (CorsMiddleware FIRST)
@@ -111,22 +117,26 @@ TEMPLATES = [
 ]
 
 # ===============================
-# Database (Smart switch)
-# ===============================
+# Database (smart switch)
 # Priority:
-# 1) DATABASE_URL -> Postgres via dj_database_url  (Render/Prod)
-# 2) DB_ENGINE=postgres -> Local Postgres using LOCAL_DB_* envs
-# 3) default -> SQLite (great for local dev)
-db_url = os.getenv("DATABASE_URL")
-db_engine = os.getenv("DB_ENGINE", "").lower()
+# 1) DATABASE_URL  -> managed Postgres (Render/Prod)
+# 2) DB_ENGINE=postgres -> Local Postgres via LOCAL_DB_* envs
+# 3) else -> SQLite (default for dev)
+# ===============================
+db_url = os.getenv("DATABASE_URL", "").strip()
+db_engine = os.getenv("DB_ENGINE", "").strip().lower()
 
 if db_url:
-    logger.debug("DB: Using DATABASE_URL (managed Postgres)")
+    logger.debug("DB: Using DATABASE_URL")
     DATABASES = {
-        "default": dj_database_url.parse(db_url, conn_max_age=600, ssl_require=not DEBUG)
+        "default": dj_database_url.parse(
+            db_url,
+            conn_max_age=600,
+            ssl_require=not DEBUG,
+        )
     }
 elif db_engine == "postgres":
-    logger.debug("DB: Using Local Postgres via LOCAL_DB_* env vars")
+    logger.debug("DB: Using Local Postgres via LOCAL_DB_* envs")
     DATABASES = {
         "default": {
             "ENGINE": "django.db.backends.postgresql",
@@ -138,7 +148,7 @@ elif db_engine == "postgres":
         }
     }
 else:
-    logger.debug("DB: Using SQLite (local development default)")
+    logger.debug("DB: Using SQLite (local dev default)")
     DATABASES = {
         "default": {
             "ENGINE": "django.db.backends.sqlite3",
@@ -146,7 +156,7 @@ else:
         }
     }
 
-logger.debug(f"DATABASES['default']={DATABASES['default']}")
+logger.debug("DATABASES['default']=%s", DATABASES["default"])
 
 # ===============================
 # i18n / tz
@@ -168,35 +178,55 @@ MEDIA_URL = "/media/"
 MEDIA_ROOT = BASE_DIR / "media"
 
 # ===============================
-# Google Cloud Storage (optional)
+# Google Cloud Storage (optional, robust)
+# Only enable GCS if BOTH bucket and credentials are valid.
+# Supports:
+# - GOOGLE_APPLICATION_CREDENTIALS (abs or relative path)
+# - GOOGLE_APPLICATION_CREDENTIALS_JSON (inline JSON)
+# - fallback to BASE_DIR/gcs-credentials.json if present
+# Else: uses local FileSystemStorage.
 # ===============================
-GS_BUCKET_NAME = os.getenv("GS_BUCKET_NAME")
-gcs_path = os.getenv("GOOGLE_APPLICATION_CREDENTIALS")
+GS_BUCKET_NAME = (os.getenv("GS_BUCKET_NAME") or "").strip() or None
+GS_CREDENTIALS = None
 
-if gcs_path and os.path.exists(gcs_path):
-    GS_CREDENTIALS = service_account.Credentials.from_service_account_file(gcs_path)
-    logger.debug("Google Cloud credentials loaded from file path")
-elif os.getenv("GOOGLE_APPLICATION_CREDENTIALS_JSON"):
-    from google.oauth2.service_account import Credentials
-    import json
+gcs_path = (os.getenv("GOOGLE_APPLICATION_CREDENTIALS") or "").strip()
+gcs_json = (os.getenv("GOOGLE_APPLICATION_CREDENTIALS_JSON") or "").strip()
 
-    try:
-        creds_json = json.loads(os.getenv("GOOGLE_APPLICATION_CREDENTIALS_JSON"))
-        GS_CREDENTIALS = Credentials.from_service_account_info(creds_json)
-        logger.debug("Google Cloud credentials loaded from JSON env")
-    except Exception as e:
-        GS_CREDENTIALS = None
-        logger.warning(f"Failed to load GCS creds from JSON env: {e}")
-else:
+if gcs_path and not os.path.isabs(gcs_path):
+    # allow simple relative path like "gcs-credentials.json"
+    gcs_path = str((BASE_DIR / gcs_path).resolve())
+
+try:
+    if gcs_json:
+        GS_CREDENTIALS = service_account.Credentials.from_service_account_info(json.loads(gcs_json))
+        logger.debug("GCS creds loaded from GOOGLE_APPLICATION_CREDENTIALS_JSON (inline JSON)")
+    elif gcs_path and os.path.exists(gcs_path):
+        GS_CREDENTIALS = service_account.Credentials.from_service_account_file(gcs_path)
+        logger.debug("GCS creds loaded from GOOGLE_APPLICATION_CREDENTIALS=%s", gcs_path)
+    else:
+        default_candidate = BASE_DIR / "gcs-credentials.json"
+        if default_candidate.exists():
+            GS_CREDENTIALS = service_account.Credentials.from_service_account_file(default_candidate)
+            logger.debug("GCS creds loaded from default path %s", default_candidate)
+        else:
+            logger.warning("GCS creds not found; will use local FileSystemStorage.")
+except Exception as e:
+    logger.exception("Failed to load GCS credentials: %s", e)
     GS_CREDENTIALS = None
-    logger.warning("Google Cloud credentials not found")
+
+USE_GCS = bool(GS_BUCKET_NAME and GS_CREDENTIALS)
 
 DEFAULT_FILE_STORAGE = (
     "storages.backends.gcloud.GoogleCloudStorage"
-    if GS_BUCKET_NAME
+    if USE_GCS
     else "django.core.files.storage.FileSystemStorage"
 )
-GCS_MEDIA_URL = f"https://storage.googleapis.com/{GS_BUCKET_NAME}/" if GS_BUCKET_NAME else None
+if USE_GCS:
+    logger.info("Using GCS storage (bucket=%s)", GS_BUCKET_NAME)
+else:
+    logger.info("Using local FileSystemStorage for media")
+
+GCS_MEDIA_URL = f"https://storage.googleapis.com/{GS_BUCKET_NAME}/" if USE_GCS else None
 
 # ===============================
 # DRF / JWT
@@ -243,10 +273,10 @@ CSRF_TRUSTED_ORIGINS = [
     f"https://{PUBLIC_APP_DOMAIN}",
 ]
 logger.debug(
-    "CORS configured | "
-    f"FRONTEND_ORIGIN={FRONTEND_ORIGIN} | "
-    f"CORS_ALLOW_CREDENTIALS={CORS_ALLOW_CREDENTIALS} | "
-    f"CSRF_TRUSTED_ORIGINS={CSRF_TRUSTED_ORIGINS}"
+    "CORS configured | FRONTEND_ORIGIN=%s | CREDENTIALS=%s | CSRF_TRUSTED_ORIGINS=%s",
+    FRONTEND_ORIGIN,
+    CORS_ALLOW_CREDENTIALS,
+    CSRF_TRUSTED_ORIGINS,
 )
 
 # ===============================
@@ -280,7 +310,11 @@ MPESA_CONSUMER_KEY = os.getenv("MPESA_CONSUMER_KEY")
 MPESA_CONSUMER_SECRET = os.getenv("MPESA_CONSUMER_SECRET")
 MPESA_PASSKEY = os.getenv("MPESA_PASSKEY")
 MPESA_CALLBACK_URL = os.getenv("MPESA_CALLBACK_URL")
-logger.debug("M-Pesa env loaded")
+logger.debug(
+    "M-Pesa env loaded | ENV=%s | CALLBACK_URL=%s",
+    MPESA_ENV,
+    MPESA_CALLBACK_URL,
+)
 
 # ===============================
 # Defaults
