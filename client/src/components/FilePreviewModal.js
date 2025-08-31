@@ -1,249 +1,221 @@
 // client/src/components/FilePreviewModal.js
-// ------------------------------------------------------------
-// Rich preview + download/buy modal (vanilla JS)
-// - Detailed debug logs (grouped)
-// - Supports image or PDF preview (with Google Docs fallback)
-// - Free: direct download
-// - Paid: checkIfPaid → download, else initiate M-Pesa
-// - Graceful when previewUrl / downloadUrl are missing
-// - ESC and backdrop click to close
-// ------------------------------------------------------------
-
-import { downloadFile, checkIfPaid, initiateMpesa } from "../services/api.js";
+import { downloadFile } from "../services/api.js";
 
 /**
- * Props:
- *  - title        : string
- *  - previewUrl   : string (can be image or pdf). Optional.
- *  - downloadUrl  : string (required for actual download)
- *  - isFree       : boolean (default true)
- *  - price        : number|string
- *  - fileId       : number|string (resource id used by checkIfPaid)
- *  - onClose      : fn()
+ * Smart preview modal that renders:
+ * - PDF with <object>
+ * - Images with <img>
+ * - Audio/Video with native tags
+ * - Office files (doc/docx/xls/xlsx/ppt/pptx) via Office/Google viewer
+ * - Graceful fallback with a helpful message
+ *
+ * Requirements for Office/Google viewer:
+ *  - The URL must be publicly reachable (a short-lived signed URL from GCS works)
+ *  - For GCS it's best if the link is "inline" (no forced attachment)
  */
 export function FilePreviewModal({
   title,
-  previewUrl,
+  // Prefer a direct file URL that the browser can GET (signed or public)
   downloadUrl,
+  // Optional separate preview image/PDF if you already generate one
+  previewUrl = null,
+  // Optional hints from backend
+  contentType = "",
+  fileName = "",
   isFree = true,
   price = 0,
-  fileId,
+  fileId = null,
   onClose,
 }) {
-  // ---------- logging ------------------------------------------------
-  try {
-    console.groupCollapsed("🪟 FilePreviewModal:init");
-    console.table({
-      title,
-      previewUrl,
-      downloadUrl,
-      isFree,
-      price,
-      fileId,
-    });
-    console.groupEnd();
-  } catch {}
+  console.log("🪟 Opening FilePreviewModal:", {
+    title,
+    previewUrl,
+    downloadUrl,
+    contentType,
+    fileName,
+    isFree,
+    price,
+    fileId,
+  });
 
-  // ---------- base elements -----------------------------------------
+  // ---------- Helpers ----------
+  const lowerCT = String(contentType || "").toLowerCase();
+  const lowerName = String(fileName || "").toLowerCase();
+  const urlForExtGuess = downloadUrl || previewUrl || "";
+  const ext =
+    lowerName.split(".").pop() ||
+    (urlForExtGuess.includes(".")
+      ? urlForExtGuess
+          .split("?")[0]
+          .split("#")[0]
+          .split(".")
+          .pop()
+          .toLowerCase()
+      : "");
+
+  const isPdf = lowerCT.includes("pdf") || ext === "pdf";
+  const isImage =
+    lowerCT.startsWith("image/") ||
+    ["png", "jpg", "jpeg", "gif", "webp", "svg"].includes(ext);
+  const isAudio =
+    lowerCT.startsWith("audio/") || ["mp3", "wav", "ogg"].includes(ext);
+  const isVideo =
+    lowerCT.startsWith("video/") || ["mp4", "webm", "ogg"].includes(ext);
+  const isOffice =
+    ["doc", "docx", "xls", "xlsx", "ppt", "pptx"].includes(ext) ||
+    lowerCT.includes("officedocument") ||
+    lowerCT.includes("msword") ||
+    lowerCT.includes("mspowerpoint") ||
+    lowerCT.includes("msexcel");
+
+  // For preview we prefer a renderable URL
+  const rawUrl = previewUrl || downloadUrl || "";
+  const officeViewerSrc = (which = "office") => {
+    const fileSrc = encodeURIComponent(downloadUrl || previewUrl || "");
+    if (which === "google") {
+      return `https://docs.google.com/gview?embedded=1&url=${fileSrc}`;
+    }
+    return `https://view.officeapps.live.com/op/embed.aspx?src=${fileSrc}`;
+  };
+
+  // ---------- DOM ----------
   const overlay = document.createElement("div");
   overlay.className =
-    "fixed inset-0 bg-black/60 flex items-center justify-center z-50";
-  overlay.setAttribute("role", "dialog");
-  overlay.setAttribute("aria-modal", "true");
+    "fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50";
 
   const modal = document.createElement("div");
   modal.className =
-    "bg-white rounded-xl shadow-lg w-[96vw] max-w-4xl max-h-[90vh] flex flex-col";
+    "bg-white rounded-xl shadow-lg w-full max-w-6xl max-h-[92vh] flex flex-col";
 
-  // ---------- header -------------------------------------------------
+  // Header
   const header = document.createElement("div");
-  header.className = "flex justify-between items-center p-4 border-b";
+  header.className = "flex justify-between items-center p-3 border-b";
+  header.innerHTML = `
+    <h3 class="text-base sm:text-lg font-bold text-[#5624d0] truncate pr-3">${title}</h3>
+    <div class="flex items-center gap-2">
+      <button id="btn-download" class="bg-[#5624d0] text-white text-xs sm:text-sm px-3 py-1.5 rounded hover:bg-purple-800">
+        ${isFree ? "Download" : `Download (Ksh ${price})`}
+      </button>
+      <button id="btn-close" class="text-gray-500 hover:text-red-600 text-sm font-bold px-3 py-1 rounded">Close</button>
+    </div>
+  `;
 
-  const heading = document.createElement("h3");
-  heading.className = "text-lg font-bold text-[#5624d0] truncate";
-  heading.textContent = title || "Preview";
+  const content = document.createElement("div");
+  content.className = "flex-1 bg-gray-50 overflow-auto";
 
-  const closeBtn = document.createElement("button");
-  closeBtn.className =
-    "text-gray-500 hover:text-red-600 text-sm font-bold px-3 py-1 rounded";
-  closeBtn.textContent = "Close";
-  closeBtn.onclick = handleClose;
+  // ---------- Decide how to render ----------
+  console.log("🧭 Preview decision:", {
+    isPdf,
+    isImage,
+    isAudio,
+    isVideo,
+    isOffice,
+    ext,
+    lowerCT,
+    rawUrl,
+  });
 
-  header.appendChild(heading);
-  header.appendChild(closeBtn);
+  if (isPdf && rawUrl) {
+    // PDF
+    const obj = document.createElement("object");
+    obj.setAttribute("data", rawUrl);
+    obj.setAttribute("type", "application/pdf");
+    obj.className = "w-full h-[84vh] bg-white";
+    obj.innerHTML = `
+      <div class="p-6 text-center text-gray-600">
+        <p>PDF preview is not available. <a class="text-[#5624d0] underline" href="${rawUrl}" target="_blank" rel="noopener">Open in a new tab</a>.</p>
+      </div>`;
+    content.appendChild(obj);
+  } else if (isImage && rawUrl) {
+    // Image
+    const img = document.createElement("img");
+    img.src = rawUrl;
+    img.alt = title;
+    img.className = "max-h-[84vh] w-auto mx-auto my-4 object-contain";
+    content.appendChild(img);
+  } else if (isAudio && rawUrl) {
+    // Audio
+    const audio = document.createElement("audio");
+    audio.src = rawUrl;
+    audio.controls = true;
+    audio.className = "w-full p-6";
+    content.appendChild(audio);
+  } else if (isVideo && rawUrl) {
+    // Video
+    const video = document.createElement("video");
+    video.src = rawUrl;
+    video.controls = true;
+    video.className = "w-full max-h-[84vh] bg-black";
+    content.appendChild(video);
+  } else if (isOffice && rawUrl) {
+    // Office viewer (requires a public or signed URL fetchable by Microsoft/Google)
+    // Try Office first; Google as fallback button.
+    const iframe = document.createElement("iframe");
+    iframe.src = officeViewerSrc("office");
+    iframe.title = "Office Viewer";
+    iframe.className = "w-full h-[84vh] bg-white";
+    iframe.setAttribute("allowfullscreen", "");
+    content.appendChild(iframe);
 
-  // ---------- body (preview) ----------------------------------------
-  const body = document.createElement("div");
-  body.className =
-    "flex-1 overflow-y-auto bg-gray-50 flex items-center justify-center";
+    const note = document.createElement("div");
+    note.className = "px-4 py-2 text-xs text-gray-500";
+    note.innerHTML =
+      "If the preview stays blank, the viewer cannot access the file. Ensure the URL is public or a short-lived signed link.";
+    content.appendChild(note);
 
-  const isPdf =
-    typeof (previewUrl || downloadUrl) === "string" &&
-    /\.pdf(\?|$)/i.test(previewUrl || downloadUrl);
+    console.log("🧩 Office viewer URL:", iframe.src);
+  } else if (rawUrl) {
+    // Unknown type → try Google viewer as a generic fallback (often works with text/rtf)
+    const iframe = document.createElement("iframe");
+    iframe.src = officeViewerSrc("google");
+    iframe.title = "Document Viewer";
+    iframe.className = "w-full h-[84vh] bg-white";
+    iframe.setAttribute("allowfullscreen", "");
+    content.appendChild(iframe);
 
-  if (previewUrl) {
-    if (isPdf) {
-      // Try native PDF first; if it fails, user can click "Open in new tab"
-      const iframe = document.createElement("iframe");
-      iframe.className = "w-full h-[75vh]";
-      iframe.title = "PDF preview";
-      iframe.src = previewUrl;
+    const note = document.createElement("div");
+    note.className = "px-4 py-2 text-xs text-gray-500";
+    note.innerHTML =
+      "Using Google viewer fallback. If you still see a blank page, the link isn’t publicly reachable.";
+    content.appendChild(note);
 
-      // Fallback to Google Docs viewer for public files (still useful in dev)
-      iframe.onerror = () => {
-        const fallback = `https://docs.google.com/gview?embedded=1&url=${encodeURIComponent(
-          previewUrl
-        )}`;
-        console.warn("📄 PDF iframe error — trying Google viewer fallback");
-        iframe.src = fallback;
-      };
-
-      body.appendChild(iframe);
-    } else {
-      const img = document.createElement("img");
-      img.className = "w-full max-h-[75vh] object-contain";
-      img.alt = "Document preview";
-      img.src = previewUrl;
-
-      // tiny SVG placeholder if image fails
-      img.onerror = () => {
-        console.warn("🖼️ Preview image failed, using placeholder.");
-        img.src =
-          "data:image/svg+xml;utf8," +
-          encodeURIComponent(
-            `<svg xmlns='http://www.w3.org/2000/svg' width='600' height='360'><rect width='100%' height='100%' fill='#eef'/><text x='50%' y='50%' dominant-baseline='middle' text-anchor='middle' font-family='Arial' font-size='22' fill='#556'>No preview available</text></svg>`
-          );
-      };
-
-      body.appendChild(img);
-    }
+    console.log("🧩 Google viewer URL:", iframe.src);
   } else {
-    const msg = document.createElement("div");
-    msg.className = "p-8 text-center text-gray-500";
-    msg.textContent = "No preview available for this file.";
-    body.appendChild(msg);
+    // No usable URL
+    content.innerHTML = `
+      <div class="p-6 text-center text-gray-600">
+        <p>Preview not available for this file type.</p>
+        <p class="mt-2"><button id="btn-fallback-download" class="bg-[#5624d0] text-white text-sm px-3 py-1.5 rounded hover:bg-purple-800">Download</button></p>
+      </div>`;
+    content
+      .querySelector("#btn-fallback-download")
+      ?.addEventListener("click", () => {
+        if (downloadUrl) downloadFile(downloadUrl);
+      });
   }
 
-  // ---------- footer -------------------------------------------------
+  // Footer (optional) — kept minimal
   const footer = document.createElement("div");
-  footer.className = "p-4 border-t flex items-center gap-3 justify-end";
+  footer.className = "p-2 border-t text-right text-xs text-gray-400";
+  footer.textContent = "Elimu_Online";
 
-  // Open-in-new-tab (always available if we have a previewUrl)
-  if (previewUrl) {
-    const openBtn = document.createElement("button");
-    openBtn.className =
-      "px-3 py-2 text-sm rounded border border-gray-300 hover:bg-gray-100";
-    openBtn.textContent = "Open in new tab";
-    openBtn.onclick = () => {
-      console.log("🔗 Open preview in new tab:", previewUrl);
-      window.open(previewUrl, "_blank", "noopener,noreferrer");
-    };
-    footer.appendChild(openBtn);
-  }
+  // Events
+  header.querySelector("#btn-close").onclick = () => {
+    console.log("❌ Preview modal closed");
+    overlay.remove();
+    if (onClose) onClose();
+  };
 
-  const primaryBtn = document.createElement("button");
-  primaryBtn.className =
-    "bg-[#5624d0] text-white text-sm px-4 py-2 rounded hover:bg-purple-800 transition disabled:opacity-60";
-  primaryBtn.textContent = isFree
-    ? "Download"
-    : `Unlock & Download (KSh ${Number(price || 0).toFixed(0)})`;
-  primaryBtn.disabled = !downloadUrl;
+  header.querySelector("#btn-download").onclick = () => {
+    console.log("⬇️ Download clicked:", { title, fileId, downloadUrl });
+    downloadFile(downloadUrl || previewUrl || "");
+  };
 
-  primaryBtn.onclick = handlePrimaryClick;
-  footer.appendChild(primaryBtn);
-
-  if (!downloadUrl) {
-    const hint = document.createElement("span");
-    hint.className = "text-xs text-red-500";
-    hint.textContent = "No download URL configured.";
-    footer.appendChild(hint);
-  }
-
-  // ---------- assemble ----------------------------------------------
+  // Assemble
   modal.appendChild(header);
-  modal.appendChild(body);
+  modal.appendChild(content);
   modal.appendChild(footer);
   overlay.appendChild(modal);
 
-  // Close on ESC and backdrop
-  const escHandler = (e) => e.key === "Escape" && handleClose();
-  document.addEventListener("keydown", escHandler);
-  overlay.addEventListener("click", (e) => {
-    if (e.target === overlay) handleClose();
-  });
-
-  // return the overlay so caller can append to DOM
   return overlay;
-
-  // ---------- handlers ----------------------------------------------
-  function setBusy(el, busy) {
-    el.disabled = !!busy;
-    el.textContent = busy ? "Please wait…" : el._label || el.textContent;
-  }
-
-  async function handlePrimaryClick() {
-    try {
-      console.groupCollapsed("⬇️ FilePreviewModal:primaryClick");
-      console.log({ isFree, downloadUrl, fileId });
-
-      if (!downloadUrl) {
-        alert("File is not downloadable yet. Please contact support.");
-        console.warn("❌ Missing downloadUrl.");
-        return;
-      }
-
-      if (isFree) {
-        console.log("✅ Free file — downloading");
-        downloadFile(downloadUrl);
-      } else {
-        console.log("💰 Paid file — checking payment status…");
-        setBusy(primaryBtn, true);
-        primaryBtn._label = `Unlock & Download (KSh ${Number(
-          price || 0
-        ).toFixed(0)})`;
-
-        let paid = false;
-        try {
-          paid = await checkIfPaid(fileId);
-        } catch (err) {
-          console.error("❌ checkIfPaid failed:", err);
-          alert("Could not verify payment status. Please try again.");
-        }
-
-        if (paid) {
-          console.log("✅ Payment verified — downloading");
-          downloadFile(downloadUrl);
-        } else {
-          console.log("🔒 Not paid — prompting M-Pesa…");
-          const phone = prompt("📱 Enter your M-Pesa number to continue:");
-          if (phone) {
-            try {
-              const result = await initiateMpesa(phone, price);
-              console.log("📩 M-Pesa initiated:", result);
-              alert(
-                "Payment initiated — confirm on your phone, then retry download."
-              );
-            } catch (err) {
-              console.error("❌ initiateMpesa failed:", err);
-              alert("Could not start payment. Please try again.");
-            }
-          }
-        }
-      }
-    } finally {
-      setBusy(primaryBtn, false);
-      console.groupEnd();
-    }
-  }
-
-  function handleClose() {
-    try {
-      console.log("❌ FilePreviewModal closed");
-      overlay.remove();
-      document.removeEventListener("keydown", escHandler);
-      if (typeof onClose === "function") onClose();
-    } catch (e) {
-      console.error("❌ Error during modal close:", e);
-    }
-  }
 }
