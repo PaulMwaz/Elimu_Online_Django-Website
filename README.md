@@ -117,7 +117,7 @@ GS_BUCKET_NAME=elimu-online-resources-2025
 
 ## 🛠️ Technologies Used
 
-- **Frontend:** Vite, Tailwind CSS, JavaScript (No JSX), HTML
+- **Frontend:** Vite, Tailwind CSS, JavaScript, HTML
 - **Backend:** Django, PostgreSQL
 - **Cloud Storage:** Google Cloud Storage (GCS)
 - **Auth:** Token-based user authentication
