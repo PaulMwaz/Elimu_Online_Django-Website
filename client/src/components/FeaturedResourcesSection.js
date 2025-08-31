@@ -1,157 +1,189 @@
-// src/components/FeaturedResourcesSection.js
+// client/src/components/FeaturedResourcesSection.js
+// ------------------------------------------------------------------
+// Vanilla JS component (NO JSX) for Vite projects without React plugin.
+// - Fetches resources via services/api.js
+// - Renders FileCard tiles and opens FilePreviewModal
+// - Search + simple filters
+// - Detailed debug logs
+// ------------------------------------------------------------------
+
+import { fetchResources } from "../services/api.js";
+import { FileCard } from "./FileCard.js";
+import { FilePreviewModal } from "./FilePreviewModal.js";
 
 export function FeaturedResourcesSection() {
+  // ----- logging ---------------------------------------------------
+  try {
+    console.groupCollapsed("📚 FeaturedResourcesSection:init");
+    console.log("API base:", window.__API_BASE_URL__);
+    console.groupEnd();
+  } catch {}
+
+  // ----- root + layout --------------------------------------------
   const section = document.createElement("section");
   section.className = "bg-gray-100 py-16 px-4 sm:px-6 lg:px-8";
 
   const container = document.createElement("div");
   container.className = "max-w-7xl mx-auto";
-
-  container.innerHTML = `
-    <div class="mb-10 text-center">
-      <h2 class="text-3xl sm:text-4xl font-extrabold text-gray-900 mb-2">
-        <span class="inline-block align-middle mr-2">📚</span>Recently Added Resources
-      </h2>
-      <p class="text-lg text-gray-600">Find high school notes, exams, schemes & more</p>
-    </div>
-
-    <!-- Filters -->
-    <div class="flex flex-col sm:flex-row justify-center gap-4 mb-8">
-      <input
-        type="text"
-        id="search-input"
-        placeholder="Search by title, subject or keyword..."
-        class="w-full sm:w-1/3 px-4 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-purple-500"
-      />
-      <select id="filter-category" class="px-4 py-2 border border-gray-300 rounded w-full sm:w-1/4">
-        <option value="">All Categories</option>
-        <option value="Notes">Notes</option>
-        <option value="Exams">Exams</option>
-        <option value="E-Books">E-Books</option>
-        <option value="Schemes">Schemes of Work</option>
-        <option value="Lesson Plans">Lesson Plans</option>
-      </select>
-      <select id="filter-form" class="px-4 py-2 border border-gray-300 rounded w-full sm:w-1/4">
-        <option value="">All Forms</option>
-        <option value="Form 1">Form 1</option>
-        <option value="Form 2">Form 2</option>
-        <option value="Form 3">Form 3</option>
-        <option value="Form 4">Form 4</option>
-      </select>
-    </div>
-
-    <div id="resource-grid" class="grid gap-6 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
-      <!-- Resource cards will be injected here -->
-    </div>
-  `;
-
   section.appendChild(container);
 
-  const grid = container.querySelector("#resource-grid");
+  // Header
+  const header = document.createElement("div");
+  header.className = "mb-10 text-center";
+  header.innerHTML = `
+    <h2 class="text-3xl sm:text-4xl font-extrabold text-gray-900 mb-2">
+      <span class="inline-block align-middle mr-2">📚</span>Recently Added Resources
+    </h2>
+    <p class="text-lg text-gray-600">Find high school notes, exams, schemes & more</p>
+  `;
+  container.appendChild(header);
 
-  // ✅ Sample data (replace with fetch in production)
-  const resources = [
-    {
-      image: "/images/sample1.jpg", // ✅ KCSE Chemistry Paper preview
-      title: "KCSE Chemistry Paper 1 - Nov 2017",
-      subject: "Chemistry",
-      form: "Form 4",
-      category: "Exams",
-      author: "KNEC",
-      price: 0,
-      isFree: true,
-    },
-    {
-      image: "/images/sample2.jpg",
-      title: "Form 1 Mid Term Past Paper - English & Literature",
-      subject: "English",
-      form: "Form 1",
-      category: "Exams",
-      author: "ELIMU",
-      price: 0,
-      isFree: true,
-    },
-    {
-      image: "/images/sample3.jpg",
-      title: "Form 4 Mathematics Paper 2 - Mock Exam (Sept 2019)",
-      subject: "Maths",
-      form: "Form 4",
-      category: "Exams",
-      author: "Busy Teacher",
-      price: 125,
-      isFree: false,
-    },
-  ];
+  // Filters
+  const filters = document.createElement("div");
+  filters.className = "flex flex-col sm:flex-row justify-center gap-4 mb-8";
 
-  const renderResources = (data) => {
-    grid.innerHTML = data.map(getResourceCard).join("");
-  };
+  const searchInput = document.createElement("input");
+  searchInput.type = "text";
+  searchInput.placeholder = "Search by title, subject or keyword...";
+  searchInput.className =
+    "w-full sm:w-1/3 px-4 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-purple-500";
 
-  const applyFilters = () => {
-    const query = document.getElementById("search-input").value.toLowerCase();
-    const category = document.getElementById("filter-category").value;
-    const form = document.getElementById("filter-form").value;
+  const categorySel = document.createElement("select");
+  categorySel.className =
+    "px-4 py-2 border border-gray-300 rounded w-full sm:w-1/4";
+  categorySel.innerHTML = `
+    <option value="">All Categories</option>
+    <option value="Notes">Notes</option>
+    <option value="Exams">Exams</option>
+    <option value="E-Books">E-Books</option>
+    <option value="Schemes">Schemes of Work</option>
+    <option value="Lesson Plans">Lesson Plans</option>
+  `;
 
-    const filtered = resources.filter((res) => {
-      return (
-        res.title.toLowerCase().includes(query) &&
-        (category ? res.category === category : true) &&
-        (form ? res.form === form : true)
-      );
+  const formSel = document.createElement("select");
+  formSel.className =
+    "px-4 py-2 border border-gray-300 rounded w-full sm:w-1/4";
+  formSel.innerHTML = `
+    <option value="">All Forms</option>
+    <option value="Form 1">Form 1</option>
+    <option value="Form 2">Form 2</option>
+    <option value="Form 3">Form 3</option>
+    <option value="Form 4">Form 4</option>
+  `;
+
+  filters.appendChild(searchInput);
+  filters.appendChild(categorySel);
+  filters.appendChild(formSel);
+  container.appendChild(filters);
+
+  // Grid
+  const grid = document.createElement("div");
+  grid.id = "resource-grid";
+  grid.className = "grid gap-6 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4";
+  container.appendChild(grid);
+
+  // State
+  let allResources = [];
+  let renderedOnce = false;
+
+  // Render helpers --------------------------------------------------
+  function openPreview(resource) {
+    const modal = FilePreviewModal({
+      title: resource.title,
+      previewUrl: resource.previewUrl || resource.downloadUrl,
+      downloadUrl: resource.downloadUrl,
+      isFree: !!resource.isFree,
+      price: resource.price || 0,
+      fileId: resource.id,
+      onClose: () => {},
+    });
+    document.body.appendChild(modal);
+  }
+
+  function renderList(list) {
+    grid.innerHTML = "";
+    if (!list.length) {
+      const empty = document.createElement("div");
+      empty.className = "col-span-full text-center text-gray-500 py-10";
+      empty.textContent = "No resources found.";
+      grid.appendChild(empty);
+      return;
+    }
+
+    list.forEach((r) => {
+      const card = FileCard({
+        title: r.title,
+        fileSize: "—",
+        pageCount: "",
+        previewImageUrl: r.previewUrl || "/logo.png",
+        isFree: !!r.isFree,
+        price: r.price || 0,
+        onClickView: () => openPreview(r),
+      });
+      grid.appendChild(card);
     });
 
-    renderResources(filtered);
-  };
+    if (!renderedOnce) {
+      try {
+        console.groupCollapsed("🧱 FeaturedResourcesSection:rendered");
+        console.table(
+          list.map((x) => ({
+            id: x.id,
+            title: x.title,
+            isFree: x.isFree,
+            price: x.price,
+            previewUrl: x.previewUrl,
+            downloadUrl: x.downloadUrl,
+          }))
+        );
+        console.groupEnd();
+      } catch {}
+      renderedOnce = true;
+    }
+  }
 
-  setTimeout(() => {
-    document
-      .getElementById("search-input")
-      .addEventListener("input", applyFilters);
-    document
-      .getElementById("filter-category")
-      .addEventListener("change", applyFilters);
-    document
-      .getElementById("filter-form")
-      .addEventListener("change", applyFilters);
-    renderResources(resources); // Initial load
-  }, 100);
+  function applyFilters() {
+    const q = (searchInput.value || "").toLowerCase();
+    const cat = categorySel.value || "";
+    const frm = formSel.value || "";
+
+    const filtered = allResources.filter((r) => {
+      const matchesQ =
+        !q ||
+        (r.title || "").toLowerCase().includes(q) ||
+        (r.category || "").toLowerCase().includes(q);
+      const matchesCat =
+        !cat || String(r.category || "").toLowerCase() === cat.toLowerCase();
+      const matchesForm =
+        !frm || String(r.level || "").toLowerCase() === frm.toLowerCase();
+      return matchesQ && matchesCat && matchesForm;
+    });
+
+    renderList(filtered);
+  }
+
+  // Wire up filters
+  searchInput.addEventListener("input", applyFilters);
+  categorySel.addEventListener("change", applyFilters);
+  formSel.addEventListener("change", applyFilters);
+
+  // Load data -------------------------------------------------------
+  (async () => {
+    try {
+      console.groupCollapsed("📥 FeaturedResourcesSection:fetchResources()");
+      allResources = await fetchResources();
+      console.log("raw count:", allResources.length);
+      console.groupEnd();
+      renderList(allResources);
+    } catch (err) {
+      console.error("❌ Failed to fetch resources:", err);
+      const errBox = document.createElement("div");
+      errBox.className =
+        "col-span-full bg-red-50 text-red-700 border border-red-200 px-4 py-3 rounded";
+      errBox.textContent = "Failed to load resources. Please try again.";
+      grid.appendChild(errBox);
+    }
+  })();
 
   return section;
-}
-
-// ✅ Resource card template
-function getResourceCard({
-  image,
-  title,
-  subject,
-  form,
-  category,
-  author,
-  price,
-  isFree,
-}) {
-  const priceDisplay = isFree
-    ? `<span class="text-green-600 font-semibold text-sm">Free</span>`
-    : `<span class="text-yellow-600 font-semibold text-sm">KSh ${price}.00</span>`;
-
-  const button = isFree
-    ? `<button class="bg-blue-600 text-white px-3 py-1 rounded text-sm hover:bg-blue-700">Download</button>`
-    : `<button class="bg-green-600 text-white px-3 py-1 rounded text-sm hover:bg-green-700">Buy Now</button>`;
-
-  return `
-    <div class="bg-white rounded-lg shadow-md hover:shadow-lg transition duration-300 flex flex-col">
-      <img src="${image}" alt="${title}" class="w-full h-36 object-cover rounded-t-lg">
-      <div class="p-4 flex-grow flex flex-col justify-between">
-        <div>
-          <h3 class="text-md font-semibold text-gray-800 mb-1">${title}</h3>
-          <p class="text-sm text-gray-500">${subject} · ${form}</p>
-          <p class="text-xs text-gray-400 mt-1">By ${author}</p>
-        </div>
-        <div class="mt-4 flex justify-between items-center">
-          ${priceDisplay}
-          ${button}
-        </div>
-      </div>
-    </div>
-  `;
 }
