@@ -4,6 +4,7 @@ import os
 import logging
 from pathlib import Path
 from datetime import timedelta
+
 from dotenv import load_dotenv
 from google.oauth2 import service_account
 from corsheaders.defaults import default_headers
@@ -16,7 +17,7 @@ load_dotenv()
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 # ===============================
-# Logging (verbose in prod too)
+# Logging (verbose everywhere)
 # ===============================
 LOGGING = {
     "version": 1,
@@ -35,18 +36,15 @@ SECRET_KEY = os.getenv("SECRET_KEY", "fallback-secret-key")
 DEBUG = os.getenv("DEBUG", "True") == "True"
 logger.debug(f"DEBUG={DEBUG}")
 
-# Public app domain (Nginx/Proxy) and optional separate frontend origin (if you still use 2 domains)
 PUBLIC_APP_DOMAIN = os.getenv("PUBLIC_APP_DOMAIN", "elimu-online.onrender.com")
 FRONTEND_ORIGIN = os.getenv("FRONTEND_ORIGIN", f"https://{PUBLIC_APP_DOMAIN}")
 
-# If you are using a reverse proxy with one public origin, you should NOT expose the backend.
-# Keep the Django service private; ALLOWED_HOSTS can be broad for Render internal routing.
 ALLOWED_HOSTS = list(
     set(
         [
             "localhost",
             "127.0.0.1",
-            ".onrender.com",  # allow any Render subdomain
+            ".onrender.com",
             PUBLIC_APP_DOMAIN,
         ]
     )
@@ -66,7 +64,7 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     "rest_framework",
     "rest_framework_simplejwt",
-    "corsheaders",  # harmless when same-origin; useful during transitions
+    "corsheaders",
     "storages",
     "resources",
     "users",
@@ -113,14 +111,22 @@ TEMPLATES = [
 ]
 
 # ===============================
-# Database (Render vs local)
+# Database (Smart switch)
 # ===============================
-IS_RENDER = os.getenv("RENDER", "False") == "True"
-if IS_RENDER:
-    logger.debug("Using Render Postgres (DATABASE_URL)")
-    DATABASES = {"default": dj_database_url.config(conn_max_age=600, ssl_require=True)}
-else:
-    logger.debug("Using Local Postgres")
+# Priority:
+# 1) DATABASE_URL -> Postgres via dj_database_url  (Render/Prod)
+# 2) DB_ENGINE=postgres -> Local Postgres using LOCAL_DB_* envs
+# 3) default -> SQLite (great for local dev)
+db_url = os.getenv("DATABASE_URL")
+db_engine = os.getenv("DB_ENGINE", "").lower()
+
+if db_url:
+    logger.debug("DB: Using DATABASE_URL (managed Postgres)")
+    DATABASES = {
+        "default": dj_database_url.parse(db_url, conn_max_age=600, ssl_require=not DEBUG)
+    }
+elif db_engine == "postgres":
+    logger.debug("DB: Using Local Postgres via LOCAL_DB_* env vars")
     DATABASES = {
         "default": {
             "ENGINE": "django.db.backends.postgresql",
@@ -131,6 +137,15 @@ else:
             "PORT": os.getenv("LOCAL_DB_PORT", "5432"),
         }
     }
+else:
+    logger.debug("DB: Using SQLite (local development default)")
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.sqlite3",
+            "NAME": BASE_DIR / "db.sqlite3",
+        }
+    }
+
 logger.debug(f"DATABASES['default']={DATABASES['default']}")
 
 # ===============================
@@ -153,18 +168,34 @@ MEDIA_URL = "/media/"
 MEDIA_ROOT = BASE_DIR / "media"
 
 # ===============================
-# GCS (optional)
+# Google Cloud Storage (optional)
 # ===============================
 GS_BUCKET_NAME = os.getenv("GS_BUCKET_NAME")
 gcs_path = os.getenv("GOOGLE_APPLICATION_CREDENTIALS")
+
 if gcs_path and os.path.exists(gcs_path):
     GS_CREDENTIALS = service_account.Credentials.from_service_account_file(gcs_path)
-    logger.debug("Google Cloud credentials loaded")
+    logger.debug("Google Cloud credentials loaded from file path")
+elif os.getenv("GOOGLE_APPLICATION_CREDENTIALS_JSON"):
+    from google.oauth2.service_account import Credentials
+    import json
+
+    try:
+        creds_json = json.loads(os.getenv("GOOGLE_APPLICATION_CREDENTIALS_JSON"))
+        GS_CREDENTIALS = Credentials.from_service_account_info(creds_json)
+        logger.debug("Google Cloud credentials loaded from JSON env")
+    except Exception as e:
+        GS_CREDENTIALS = None
+        logger.warning(f"Failed to load GCS creds from JSON env: {e}")
 else:
     GS_CREDENTIALS = None
     logger.warning("Google Cloud credentials not found")
 
-DEFAULT_FILE_STORAGE = "storages.backends.gcloud.GoogleCloudStorage" if GS_BUCKET_NAME else "django.core.files.storage.FileSystemStorage"
+DEFAULT_FILE_STORAGE = (
+    "storages.backends.gcloud.GoogleCloudStorage"
+    if GS_BUCKET_NAME
+    else "django.core.files.storage.FileSystemStorage"
+)
 GCS_MEDIA_URL = f"https://storage.googleapis.com/{GS_BUCKET_NAME}/" if GS_BUCKET_NAME else None
 
 # ===============================
@@ -186,19 +217,14 @@ logger.debug("REST_FRAMEWORK + SIMPLE_JWT configured")
 # ===============================
 # Proxy Awareness (Render/Nginx)
 # ===============================
-# Required when your proxy terminates TLS and forwards to Django over HTTP
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 USE_X_FORWARDED_HOST = True
-# Avoid accidental redirects on preflight due to slash mismatches:
-APPEND_SLASH = True  # keep this True and ensure your frontend uses trailing slashes
+APPEND_SLASH = True
 
 # ===============================
 # CORS / CSRF
 # ===============================
-# With the reverse proxy (one public origin), the browser makes same-origin requests → CORS is NOT used.
-# Keeping explicit settings helps during local/dev or while migrating.
 CORS_ALLOW_ALL_ORIGINS = False
-# You are using JWT in headers (no cookies), so credentials aren't needed; leave False.
 CORS_ALLOW_CREDENTIALS = False
 
 CORS_ALLOWED_ORIGINS = [
@@ -209,16 +235,13 @@ CORS_ALLOWED_ORIGINS = [
 CORS_ALLOWED_ORIGIN_REGEXES = [
     r"^https://.*\.onrender\.com$",
 ]
-
 CORS_ALLOW_HEADERS = list(default_headers) + ["Authorization", "Content-Type"]
 CORS_EXPOSE_HEADERS = ["Authorization", "Content-Type"]
 CORS_ALLOW_METHODS = ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"]
 
-# CSRF needed only if you use cookie/session auth. Keep trusted origins anyway.
 CSRF_TRUSTED_ORIGINS = [
     f"https://{PUBLIC_APP_DOMAIN}",
 ]
-
 logger.debug(
     "CORS configured | "
     f"FRONTEND_ORIGIN={FRONTEND_ORIGIN} | "

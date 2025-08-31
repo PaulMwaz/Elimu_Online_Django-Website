@@ -9,14 +9,15 @@ logger = logging.getLogger(__name__)
 def delete_file_on_resource_delete(sender, instance, **kwargs):
     """
     🗑️ Deletes associated file from storage when a Resource is deleted.
-    Works with both local and GCS storage.
+    Works with both local media and Google Cloud Storage.
     """
     try:
-        if instance.file:
-            logger.info("🗑️ Signal: Deleting file from storage for resource '%s'", instance.title)
+        if instance.file and instance.file.name:
+            fname = instance.file.name
+            logger.info("🗑️ Signal: Deleting file for resource '%s' → %s", instance.title, fname)
             instance.file.delete(save=False)
-            logger.debug("✅ File deleted for resource '%s': %s", instance.title, instance.file.name)
+            logger.debug("✅ File deleted for resource '%s': %s", instance.title, fname)
         else:
-            logger.warning("⚠️ Signal: No file found for resource '%s'", instance.title)
+            logger.warning("⚠️ Signal: No file to delete for resource '%s'", instance.title)
     except Exception as e:
-        logger.error("❌ Signal: Failed to delete file for '%s': %s", instance.title, str(e))
+        logger.exception("❌ Signal: Failed to delete file for resource '%s': %s", instance.title, e)

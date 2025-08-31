@@ -3,16 +3,18 @@ from django.urls import path
 from .views import ResourceListView, ResourceUploadView
 
 logger = logging.getLogger(__name__)
-logger.info("✅ DEBUG: resources/urls.py loaded")
+logger.debug("✅ resources/urls.py loaded")
+
+app_name = "resources"  # ✅ namespace safety
 
 urlpatterns = [
-    # ✅ Public: List all uploaded resources (e.g., for frontend display)
-    path('', ResourceListView.as_view(), name='resource-list'),
+    # Public: List all uploaded resources (frontend consumption)
+    path("", ResourceListView.as_view(), name="resource-list"),
 
-    # ✅ Admin-only: Upload new resource files
-    path('upload/', ResourceUploadView.as_view(), name='resource-upload'),
+    # Admin-only: Upload new resource files
+    path("upload/", ResourceUploadView.as_view(), name="resource-upload"),
 ]
 
-# 🔍 Log the registered routes
+# 🔍 Debug log the registered routes
 for route in urlpatterns:
-    logger.info(f"🔗 Route loaded → {route.name}: {route.pattern}")
+    logger.debug("🔗 Route loaded → %s: %s", route.name, route.pattern)
